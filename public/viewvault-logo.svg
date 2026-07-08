@@ -1,0 +1,29 @@
+<svg width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="filmGradient" x1="30" y1="20" x2="190" y2="200">
+      <stop stop-color="#A78BFA"/>
+      <stop offset="0.45" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <path d="M42 28 C60 38 74 66 86 102 C95 128 102 153 110 176 C118 153 125 128 134 102 C146 66 160 38 178 28"
+        stroke="url(#filmGradient)" stroke-width="26" stroke-linecap="round" filter="url(#glow)"/>
+
+  <path d="M42 28 C60 38 74 66 86 102 C95 128 102 153 110 176"
+        stroke="#1A1A1A" stroke-width="10" stroke-dasharray="8 12" stroke-linecap="round"/>
+
+  <path d="M178 28 C160 38 146 66 134 102 C125 128 118 153 110 176"
+        stroke="#1A1A1A" stroke-width="10" stroke-dasharray="8 12" stroke-linecap="round"/>
+
+  <circle cx="110" cy="142" r="42" fill="#121212" stroke="#7C3AED" stroke-width="5" filter="url(#glow)"/>
+
+  <path d="M101 120 L101 164 L137 142 Z" fill="#F8FAFC"/>
+</svg>  
