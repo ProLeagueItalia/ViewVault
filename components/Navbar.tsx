@@ -1,3 +1,4 @@
+import LoginButton from "./LoginButton";
 export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 z-50 w-full border-b border-zinc-800 bg-[#121212]/80 backdrop-blur-md">
@@ -27,9 +28,7 @@ export default function Navbar() {
 
         </nav>
 
-        <button className="rounded-full bg-[#7C3AED] px-6 py-2 font-semibold transition hover:bg-[#2563EB]">
-          Login
-        </button>
+        <LoginButton />
 
       </div>
     </header>

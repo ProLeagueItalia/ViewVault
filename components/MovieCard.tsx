@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 type MovieCardProps = {
+  id?: number;
   title: string;
   year: string;
   rating: string;
@@ -9,6 +12,7 @@ type MovieCardProps = {
 };
 
 export default function MovieCard({
+  id,
   title,
   year,
   rating,
@@ -17,11 +21,16 @@ export default function MovieCard({
   genre = "Cinema",
   duration = "120 min",
 }: MovieCardProps) {
+  const href = id ? `/film/${id}` : "#";
+
   return (
-    <div className="group overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900 transition hover:-translate-y-2 hover:border-[#7C3AED] hover:shadow-[0_0_30px_rgba(124,58,237,0.25)]">
+    <Link
+      href={href}
+      className="group overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900 transition hover:-translate-y-2 hover:border-[#7C3AED] hover:shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+    >
       <div className="relative h-72 w-full overflow-hidden bg-zinc-800">
         {tag && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-[#7C3AED] px-3 py-1 text-xs font-bold text-white shadow-[0_0_20px_rgba(124,58,237,0.6)]">
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-[#7C3AED] px-3 py-1 text-xs font-bold text-white">
             {tag}
           </span>
         )}
@@ -36,11 +45,11 @@ export default function MovieCard({
           className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-        <button className="absolute bottom-4 left-4 right-4 rounded-full bg-white/10 py-2 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-[#7C3AED]">
-          + Aggiungi al Vault
-        </button>
+        <div className="absolute bottom-4 left-4 right-4 rounded-full bg-white/10 py-2 text-center text-sm font-semibold text-white backdrop-blur-md transition group-hover:bg-[#7C3AED]">
+          Apri scheda
+        </div>
       </div>
 
       <div className="p-4">
@@ -50,6 +59,6 @@ export default function MovieCard({
           {year} • {genre} • {duration}
         </p>
       </div>
-    </div>
+    </Link>
   );
 }
