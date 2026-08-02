@@ -36,11 +36,33 @@ export default function Home() {
             Scopri di più
           </button>
         </div>
+
+        {/* Barra di ricerca */}
+        <form
+          action="/ricerca"
+          method="GET"
+          className="mt-12 flex w-full max-w-3xl flex-col gap-4 sm:flex-row"
+        >
+          <input
+            type="search"
+            name="q"
+            placeholder="🔎 Cerca un film o una serie TV..."
+            autoComplete="off"
+            className="flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-6 py-4 text-lg text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/20"
+          />
+
+          <button
+            type="submit"
+            className="rounded-full bg-[#7C3AED] px-8 py-4 text-lg font-semibold text-white transition hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.4)]"
+          >
+            Cerca
+          </button>
+        </form>
       </section>
 
       <StatsCards />
+
       <NewMovies />
-      
     </main>
   );
 }

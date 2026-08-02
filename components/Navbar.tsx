@@ -1,35 +1,37 @@
+import Link from "next/link";
 import LoginButton from "./LoginButton";
+
 export default function Navbar() {
   return (
-    <header className="fixed top-0 left-0 z-50 w-full border-b border-zinc-800 bg-[#121212]/80 backdrop-blur-md">
+    <header className="fixed left-0 top-0 z-50 w-full border-b border-zinc-800 bg-[#121212]/80 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-8">
-
-        <h1 className="text-3xl font-bold tracking-tight">
+        <Link href="/" className="text-3xl font-bold tracking-tight">
           View<span className="text-[#7C3AED]">Vault</span>
-        </h1>
+        </Link>
 
         <nav className="hidden gap-8 text-lg md:flex">
-
-          <a href="#" className="transition hover:text-[#7C3AED]">
+          <Link href="/" className="transition hover:text-[#7C3AED]">
             Home
-          </a>
+          </Link>
 
-          <a href="#" className="transition hover:text-[#7C3AED]">
+          <Link href="/film" className="transition hover:text-[#7C3AED]">
             Film
-          </a>
+          </Link>
 
-          <a href="#" className="transition hover:text-[#7C3AED]">
+          <Link href="/serie-tv" className="transition hover:text-[#7C3AED]">
             Serie TV
-          </a>
+          </Link>
 
-          <a href="#" className="transition hover:text-[#7C3AED]">
+          <Link href="/vault" className="transition hover:text-[#7C3AED]">
+            Il mio Vault
+          </Link>
+
+          <Link href="/dashboard" className="transition hover:text-[#7C3AED]">
             Statistiche
-          </a>
-
+          </Link>
         </nav>
 
         <LoginButton />
-
       </div>
     </header>
   );
