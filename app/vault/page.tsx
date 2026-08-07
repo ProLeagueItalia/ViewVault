@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import AppHeader from "../../components/AppHeader";
+import BackButton from "../../components/BackButton";
+import VaultLibrary, {
+  type VaultMediaItem,
+} from "../../components/VaultLibrary";
+
 import { createClient } from "../../lib/supabase/server";
-import { getMovie, getPosterUrl } from "../../lib/tmdb";
+
+import {
+  getMovie,
+  getPosterUrl,
+  getSeries,
+} from "../../lib/tmdb";
 
 type VaultStatus = "watched" | "watchlist";
 
@@ -13,7 +24,15 @@ type VaultItem = {
   status: VaultStatus;
   rating: number | null;
   review: string | null;
+  is_favorite: boolean;
   created_at: string | null;
+};
+
+type SeriesProgressRow = {
+  series_id: number;
+  total_episodes: number;
+  watched_episodes: number;
+  status: "watchlist" | "in_progress" | "watched";
 };
 
 type MovieDetails = {
@@ -22,6 +41,16 @@ type MovieDetails = {
   release_date: string;
   poster_path: string | null;
   runtime: number | null;
+  vote_average: number;
+};
+
+type SeriesDetails = {
+  id: number;
+  name: string;
+  first_air_date: string;
+  poster_path: string | null;
+  episode_run_time?: number[];
+  number_of_episodes: number;
   vote_average: number;
 };
 
@@ -36,186 +65,220 @@ export default async function VaultPage() {
     redirect("/");
   }
 
-  const { data: vaultItems, error } = await supabase
-    .from("vault_items")
-    .select(
-      "id, tmdb_id, media_type, status, rating, review, created_at"
-    )
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const [vaultResponse, progressResponse] =
+    await Promise.all([
+      supabase
+        .from("vault_items")
+        .select(
+          "id, tmdb_id, media_type, status, rating, review, is_favorite, created_at"
+        )
+        .eq("user_id", user.id)
+        .order("created_at", {
+          ascending: false,
+        }),
 
-  if (error) {
-    console.error("Errore nel recupero del Vault:", error);
+      supabase
+        .from("series_progress")
+        .select(
+          "series_id, total_episodes, watched_episodes, status"
+        )
+        .eq("user_id", user.id),
+    ]);
+
+  if (vaultResponse.error) {
+    console.error("Errore nel recupero del Vault:", {
+      message: vaultResponse.error.message,
+      details: vaultResponse.error.details,
+      hint: vaultResponse.error.hint,
+      code: vaultResponse.error.code,
+    });
+
+    throw new Error(
+      [
+        vaultResponse.error.message,
+        vaultResponse.error.details,
+        vaultResponse.error.hint,
+        `Codice: ${vaultResponse.error.code}`,
+      ]
+        .filter(Boolean)
+        .join(" | ")
+    );
   }
 
-  const movieItems =
-    (vaultItems as VaultItem[] | null)?.filter(
-      (item) => item.media_type === "movie"
-    ) ?? [];
+  if (progressResponse.error) {
+    console.error(
+      "Errore nel recupero dei progressi:",
+      {
+        message: progressResponse.error.message,
+        details: progressResponse.error.details,
+        hint: progressResponse.error.hint,
+        code: progressResponse.error.code,
+      }
+    );
+  }
 
-  const movieResults = await Promise.allSettled(
-    movieItems.map(async (item) => {
-      const movie = (await getMovie(
-        String(item.tmdb_id)
-      )) as MovieDetails;
+  const vaultItems =
+    (vaultResponse.data as VaultItem[] | null) ?? [];
 
-      return {
-        vaultItem: item,
-        movie,
-      };
-    })
+  const progressRows =
+    (progressResponse.data as
+      | SeriesProgressRow[]
+      | null) ?? [];
+
+  const progressMap = new Map(
+    progressRows.map((progress) => [
+      progress.series_id,
+      progress,
+    ])
   );
 
-  const movies = movieResults
+  const itemResults = await Promise.allSettled(
+    vaultItems.map(
+      async (
+        vaultItem
+      ): Promise<VaultMediaItem> => {
+        if (vaultItem.media_type === "movie") {
+          const movie = (await getMovie(
+            String(vaultItem.tmdb_id)
+          )) as MovieDetails;
+
+          return {
+            vaultId: vaultItem.id,
+            tmdbId: movie.id,
+            mediaType: "movie",
+            title: movie.title,
+            year: movie.release_date
+              ? movie.release_date.slice(0, 4)
+              : "N/D",
+            posterUrl: getPosterUrl(
+              movie.poster_path
+            ),
+            voteAverage:
+              movie.vote_average ?? 0,
+            runtimeLabel: movie.runtime
+              ? `${movie.runtime} min`
+              : "Durata non disponibile",
+            vaultStatus: vaultItem.status,
+            progressStatus: null,
+            watchedEpisodes: 0,
+            totalEpisodes: 0,
+            isFavorite: vaultItem.is_favorite,
+            createdAt: vaultItem.created_at,
+          };
+        }
+
+        const series = (await getSeries(
+          String(vaultItem.tmdb_id)
+        )) as SeriesDetails;
+
+        const progress =
+          progressMap.get(vaultItem.tmdb_id);
+
+        const averageRuntime =
+          series.episode_run_time?.[0];
+
+        return {
+          vaultId: vaultItem.id,
+          tmdbId: series.id,
+          mediaType: "tv",
+          title: series.name,
+          year: series.first_air_date
+            ? series.first_air_date.slice(0, 4)
+            : "N/D",
+          posterUrl: getPosterUrl(
+            series.poster_path
+          ),
+          voteAverage:
+            series.vote_average ?? 0,
+          runtimeLabel: averageRuntime
+            ? `${averageRuntime} min per episodio`
+            : `${series.number_of_episodes ?? 0} episodi`,
+          vaultStatus: vaultItem.status,
+          progressStatus:
+            progress?.status ?? null,
+          watchedEpisodes:
+            progress?.watched_episodes ?? 0,
+          totalEpisodes:
+            progress?.total_episodes ??
+            series.number_of_episodes ??
+            0,
+          isFavorite: vaultItem.is_favorite,
+          createdAt: vaultItem.created_at,
+        };
+      }
+    )
+  );
+
+  const vaultMediaItems = itemResults
     .filter(
       (
         result
-      ): result is PromiseFulfilledResult<{
-        vaultItem: VaultItem;
-        movie: MovieDetails;
-      }> => result.status === "fulfilled"
+      ): result is PromiseFulfilledResult<VaultMediaItem> =>
+        result.status === "fulfilled"
     )
     .map((result) => result.value);
 
-  const watchedCount = movies.filter(
-    ({ vaultItem }) => vaultItem.status === "watched"
-  ).length;
-
-  const watchlistCount = movies.filter(
-    ({ vaultItem }) => vaultItem.status === "watchlist"
-  ).length;
-
   return (
-    <main className="min-h-screen bg-[#0d0d0d] px-6 pb-20 pt-28 text-white">
-      <div className="mx-auto max-w-7xl">
-        <section className="mb-10">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-[#8b5cf6]">
-            Archivio personale
-          </p>
+    <>
+      <AppHeader />
 
-          <h1 className="text-4xl font-bold md:text-5xl">
-            Il mio <span className="text-[#7c3aed]">Vault</span>
-          </h1>
+      <main className="min-h-screen bg-[#0D0D0D] px-6 pb-20 pt-10 text-white">
+        <div className="mx-auto max-w-7xl">
+          <BackButton fallbackHref="/" />
 
-          <p className="mt-4 max-w-2xl text-lg text-zinc-400">
-            Tutti i film che hai salvato nel tuo archivio personale.
-          </p>
+          <section className="mb-10 mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-[#8B5CF6]">
+                Archivio personale
+              </p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <div className="inline-flex rounded-full border border-zinc-800 bg-[#151515] px-5 py-3">
-              <span className="font-bold text-[#a78bfa]">
-                {movies.length}
-              </span>
+              <h1 className="text-4xl font-bold md:text-5xl">
+                Il mio{" "}
+                <span className="text-[#7C3AED]">
+                  Vault
+                </span>
+              </h1>
 
-              <span className="ml-2 text-zinc-400">
-                {movies.length === 1 ? "film salvato" : "film salvati"}
-              </span>
+              <p className="mt-4 max-w-2xl text-lg text-zinc-400">
+                Film e serie TV riuniti in un unico
+                archivio. Cerca, filtra e riprendi da
+                dove avevi interrotto.
+              </p>
             </div>
-
-            <div className="inline-flex rounded-full border border-green-900/50 bg-green-950/30 px-5 py-3">
-              <span className="font-bold text-green-400">
-                {watchedCount}
-              </span>
-
-              <span className="ml-2 text-zinc-400">
-                {watchedCount === 1 ? "visto" : "visti"}
-              </span>
-            </div>
-
-            <div className="inline-flex rounded-full border border-violet-900/50 bg-violet-950/30 px-5 py-3">
-              <span className="font-bold text-violet-400">
-                {watchlistCount}
-              </span>
-
-              <span className="ml-2 text-zinc-400">
-                da vedere
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {movies.length === 0 ? (
-          <section className="rounded-3xl border border-dashed border-zinc-700 bg-[#151515] px-6 py-20 text-center">
-            <p className="text-4xl">🎬</p>
-
-            <h2 className="mt-5 text-2xl font-bold">
-              Il tuo Vault è ancora vuoto
-            </h2>
-
-            <p className="mx-auto mt-3 max-w-xl text-zinc-400">
-              Torna alla Home e aggiungi il primo film al tuo archivio.
-            </p>
 
             <Link
-              href="/"
-              className="mt-7 inline-block rounded-full bg-[#7c3aed] px-7 py-3 font-bold transition hover:bg-[#6d28d9]"
+              href="/ricerca"
+              className="inline-flex w-fit items-center justify-center rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
             >
-              Scopri i film
+              + Aggiungi contenuti
             </Link>
           </section>
-        ) : (
-          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {movies.map(({ vaultItem, movie }) => {
-              const year = movie.release_date
-                ? movie.release_date.slice(0, 4)
-                : "Anno non disponibile";
 
-              const runtime = movie.runtime
-                ? `${movie.runtime} min`
-                : "Durata non disponibile";
+          {vaultMediaItems.length > 0 ? (
+            <VaultLibrary items={vaultMediaItems} />
+          ) : (
+            <section className="rounded-3xl border border-dashed border-zinc-700 bg-[#151515] px-6 py-20 text-center">
+              <p className="text-5xl">🎞️</p>
 
-              const isWatched = vaultItem.status === "watched";
+              <h2 className="mt-5 text-2xl font-bold">
+                Il tuo Vault è ancora vuoto
+              </h2>
 
-              return (
-                <article
-                  key={vaultItem.id}
-                  className="overflow-hidden rounded-3xl border border-zinc-800 bg-[#151515] transition hover:-translate-y-1 hover:border-[#7c3aed]"
-                >
-                  <Link href={`/film/${movie.id}`} className="block">
-                    <div className="relative h-96 overflow-hidden bg-zinc-900">
-                      <img
-                        src={getPosterUrl(movie.poster_path)}
-                        alt={movie.title}
-                        className="h-full w-full object-cover transition duration-500 hover:scale-105"
-                      />
+              <p className="mx-auto mt-3 max-w-xl text-zinc-400">
+                Cerca un film o una serie TV e aggiungi
+                il primo contenuto alla tua libreria.
+              </p>
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-
-                      <span
-                        className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-bold ${
-                          isWatched
-                            ? "bg-green-600 text-white"
-                            : "bg-[#7c3aed] text-white"
-                        }`}
-                      >
-                        {isWatched ? "✓ Visto" : "👀 Da vedere"}
-                      </span>
-
-                      <span className="absolute right-3 top-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-[#f4c542]">
-                        ⭐ {movie.vote_average.toFixed(1)}
-                      </span>
-                    </div>
-
-                    <div className="p-5">
-                      <h2 className="line-clamp-1 text-xl font-bold">
-                        {movie.title}
-                      </h2>
-
-                      <p className="mt-2 text-sm text-zinc-400">
-                        {year} • {runtime}
-                      </p>
-
-                      <div className="mt-5 rounded-full bg-[#7c3aed]/15 px-4 py-2 text-center text-sm font-bold text-[#a78bfa]">
-                        Apri scheda
-                      </div>
-                    </div>
-                  </Link>
-                </article>
-              );
-            })}
-          </section>
-        )}
-      </div>
-    </main>
+              <Link
+                href="/ricerca"
+                className="mt-7 inline-block rounded-full bg-[#7C3AED] px-7 py-3 font-bold transition hover:bg-[#6D28D9]"
+              >
+                Cerca contenuti
+              </Link>
+            </section>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

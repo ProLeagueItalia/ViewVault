@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { createClient } from "../lib/supabase/client";
@@ -26,6 +27,13 @@ type WatchedEpisodeRow = {
   episode_number: number;
 };
 
+type ToggleEpisodeResult = {
+  is_watched: boolean;
+  watched_count: number;
+  total_count: number;
+  progress_status: "watchlist" | "in_progress" | "watched";
+};
+
 type SeasonEpisodesProps = {
   seriesId: number;
   seasons: SeasonWithEpisodes[];
@@ -42,6 +50,7 @@ export default function SeasonEpisodes({
   seriesId,
   seasons,
 }: SeasonEpisodesProps) {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [openSeason, setOpenSeason] = useState<number | null>(
@@ -53,9 +62,21 @@ export default function SeasonEpisodes({
   );
 
   const [isLoading, setIsLoading] = useState(true);
-  const [savingEpisode, setSavingEpisode] = useState<string | null>(null);
+  const [savingEpisode, setSavingEpisode] = useState<string | null>(
+    null
+  );
+
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
+
+  const totalEpisodes = useMemo(
+    () =>
+      seasons.reduce(
+        (total, season) => total + season.episodes.length,
+        0
+      ),
+    [seasons]
+  );
 
   useEffect(() => {
     async function loadWatchedEpisodes() {
@@ -68,7 +89,22 @@ export default function SeasonEpisodes({
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError || !user) {
+      if (userError) {
+        console.error(
+          "Errore nel recupero dell'utente:",
+          userError
+        );
+
+        setMessage(
+          "Non è stato possibile controllare il tuo account."
+        );
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setWatchedEpisodes(new Set());
         setIsLoading(false);
         return;
       }
@@ -115,14 +151,14 @@ export default function SeasonEpisodes({
     seasonNumber: number,
     episodeNumber: number
   ) {
+    if (savingEpisode) {
+      return;
+    }
+
     const episodeKey = createEpisodeKey(
       seasonNumber,
       episodeNumber
     );
-
-    if (savingEpisode) {
-      return;
-    }
 
     setSavingEpisode(episodeKey);
     setMessage("");
@@ -142,60 +178,37 @@ export default function SeasonEpisodes({
       return;
     }
 
-    const isAlreadyWatched =
-      watchedEpisodes.has(episodeKey);
-
-    if (isAlreadyWatched) {
-      const { error } = await supabase
-        .from("watched_episodes")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("series_id", seriesId)
-        .eq("season_number", seasonNumber)
-        .eq("episode_number", episodeNumber);
-
-      if (error) {
-        console.error(
-          "Errore nella rimozione dell'episodio:",
-          error
-        );
-
-        setMessage(
-          "Non è stato possibile togliere la spunta."
-        );
-        setHasError(true);
-        setSavingEpisode(null);
-        return;
+    const { data, error } = await supabase.rpc(
+      "toggle_watched_episode",
+      {
+        p_series_id: seriesId,
+        p_season_number: seasonNumber,
+        p_episode_number: episodeNumber,
+        p_total_episodes: totalEpisodes,
       }
-
-      setWatchedEpisodes((currentEpisodes) => {
-        const updatedEpisodes = new Set(currentEpisodes);
-        updatedEpisodes.delete(episodeKey);
-        return updatedEpisodes;
-      });
-
-      setMessage("Episodio segnato come non visto.");
-      setSavingEpisode(null);
-      return;
-    }
-
-    const { error } = await supabase
-      .from("watched_episodes")
-      .insert({
-        user_id: user.id,
-        series_id: seriesId,
-        season_number: seasonNumber,
-        episode_number: episodeNumber,
-      });
+    );
 
     if (error) {
       console.error(
-        "Errore nel salvataggio dell'episodio:",
+        "Errore durante l'aggiornamento dell'episodio:",
         error
       );
 
       setMessage(
-        "Non è stato possibile salvare l'episodio."
+        "Non è stato possibile aggiornare l'episodio."
+      );
+      setHasError(true);
+      setSavingEpisode(null);
+      return;
+    }
+
+    const result = (
+      Array.isArray(data) ? data[0] : data
+    ) as ToggleEpisodeResult | null;
+
+    if (!result) {
+      setMessage(
+        "Il database non ha restituito il risultato dell'operazione."
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -204,18 +217,30 @@ export default function SeasonEpisodes({
 
     setWatchedEpisodes((currentEpisodes) => {
       const updatedEpisodes = new Set(currentEpisodes);
-      updatedEpisodes.add(episodeKey);
+
+      if (result.is_watched) {
+        updatedEpisodes.add(episodeKey);
+      } else {
+        updatedEpisodes.delete(episodeKey);
+      }
+
       return updatedEpisodes;
     });
 
-    setMessage("Episodio segnato come visto.");
-    setSavingEpisode(null);
-  }
+    setMessage(
+      result.is_watched
+        ? "Episodio segnato come visto."
+        : "Episodio segnato come non visto."
+    );
 
-  const totalEpisodes = seasons.reduce(
-    (total, season) => total + season.episodes.length,
-    0
-  );
+    setSavingEpisode(null);
+
+    /*
+     * Aggiorna eventuali componenti server che leggono
+     * series_progress, come badge e statistiche.
+     */
+    router.refresh();
+  }
 
   const watchedCount = watchedEpisodes.size;
 
@@ -255,7 +280,7 @@ export default function SeasonEpisodes({
                 seriesStatus === "Vista"
                   ? "bg-green-600 text-white"
                   : seriesStatus === "In corso"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-amber-500 text-black"
                     : "bg-[#7C3AED] text-white"
               }`}
             >
@@ -307,9 +332,19 @@ export default function SeasonEpisodes({
               )
             ).length;
 
+          const seasonProgress =
+            season.episodes.length > 0
+              ? Math.round(
+                  (watchedSeasonEpisodes /
+                    season.episodes.length) *
+                    100
+                )
+              : 0;
+
           const seasonCompleted =
             season.episodes.length > 0 &&
-            watchedSeasonEpisodes === season.episodes.length;
+            watchedSeasonEpisodes ===
+              season.episodes.length;
 
           return (
             <article
@@ -325,23 +360,42 @@ export default function SeasonEpisodes({
                 }
                 className="flex w-full items-center justify-between gap-5 p-6 text-left transition hover:bg-zinc-800/70"
               >
-                <div>
-                  <h3 className="text-xl font-bold">
-                    {season.name}
-                  </h3>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-xl font-bold">
+                      {season.name}
+                    </h3>
+
+                    {seasonCompleted && (
+                      <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
+                        ✓ Completata
+                      </span>
+                    )}
+                  </div>
 
                   <p className="mt-2 text-sm text-zinc-400">
                     {watchedSeasonEpisodes} di{" "}
                     {season.episodes.length} episodi visti
                   </p>
+
+                  <div className="mt-3 h-2 max-w-xl overflow-hidden rounded-full bg-zinc-800">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        seasonCompleted
+                          ? "bg-green-600"
+                          : "bg-[#7C3AED]"
+                      }`}
+                      style={{
+                        width: `${seasonProgress}%`,
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {seasonCompleted && (
-                    <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
-                      ✓ Completata
-                    </span>
-                  )}
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-sm font-bold text-zinc-400">
+                    {seasonProgress}%
+                  </span>
 
                   <span className="text-2xl text-zinc-300">
                     {isOpen ? "−" : "+"}
@@ -417,7 +471,10 @@ export default function SeasonEpisodes({
                                 episode.episode_number
                               )
                             }
-                            disabled={isLoading || Boolean(savingEpisode)}
+                            disabled={
+                              isLoading ||
+                              Boolean(savingEpisode)
+                            }
                             className={`rounded-full px-5 py-3 text-sm font-bold transition ${
                               isWatched
                                 ? "bg-green-600 text-white hover:bg-green-700"
