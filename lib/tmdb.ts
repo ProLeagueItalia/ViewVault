@@ -35,11 +35,73 @@ export type TMDBSearchResult = {
   overview: string;
 };
 
+export type TMDBMoviePage = {
+  page: number;
+  results: TMDBMovie[];
+  total_pages: number;
+  total_results: number;
+};
+
+export type TMDBSeriesPage = {
+  page: number;
+  results: TMDBSeries[];
+  total_pages: number;
+  total_results: number;
+};
+
+export type TMDBGenre = {
+  id: number;
+  name: string;
+};
+
+export type MovieSortOption =
+  | "popularity.desc"
+  | "vote_average.desc"
+  | "primary_release_date.desc"
+  | "primary_release_date.asc"
+  | "title.asc"
+  | "title.desc";
+
+export type SeriesSortOption =
+  | "popularity.desc"
+  | "vote_average.desc"
+  | "first_air_date.desc"
+  | "first_air_date.asc"
+  | "name.asc"
+  | "name.desc";
+
+export type DiscoverMovieFilters = {
+  page?: number;
+  genreId?: number;
+  year?: number;
+  minVote?: number;
+  sortBy?: MovieSortOption;
+};
+
+export type DiscoverSeriesFilters = {
+  page?: number;
+  genreId?: number;
+  year?: number;
+  minVote?: number;
+  sortBy?: SeriesSortOption;
+};
+
 type TMDBMovieResponse = {
   page: number;
   results: TMDBMovie[];
   total_pages: number;
   total_results: number;
+};
+
+type TMDBSeriesResponse = {
+  page: number;
+  results: TMDBSeries[];
+  total_pages: number;
+  total_results: number;
+};
+
+type TMDBGenreResponse = {
+  genres: TMDBGenre[];
 };
 
 type TMDBMultiMovieResult = TMDBMovie & {
@@ -75,17 +137,23 @@ function checkApiKey() {
   }
 }
 
-export async function getNowPlayingMovies(): Promise<TMDBMovie[]> {
+async function fetchMovieList(
+  endpoint: string,
+  page = 1,
+  extraParams: Record<string, string> = {}
+): Promise<TMDBMoviePage> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
     language: "it-IT",
-    page: "1",
+    page: String(page),
+    include_adult: "false",
+    ...extraParams,
   });
 
   const res = await fetch(
-    `${BASE_URL}/movie/now_playing?${params.toString()}`,
+    `${BASE_URL}${endpoint}?${params.toString()}`,
     {
       next: {
         revalidate: 3600,
@@ -94,18 +162,330 @@ export async function getNowPlayingMovies(): Promise<TMDBMovie[]> {
   );
 
   if (!res.ok) {
-    throw new Error("Errore nel recupero dei film.");
+    throw new Error(
+      `Errore TMDB durante il recupero di ${endpoint}.`
+    );
   }
 
-  const data = (await res.json()) as TMDBMovieResponse;
+  const data =
+    (await res.json()) as TMDBMovieResponse;
+
+  return {
+    page: data.page,
+    results: data.results ?? [],
+    total_pages: data.total_pages ?? 0,
+    total_results: data.total_results ?? 0,
+  };
+}
+
+async function fetchSeriesList(
+  endpoint: string,
+  page = 1,
+  extraParams: Record<string, string> = {}
+): Promise<TMDBSeriesPage> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+    page: String(page),
+    include_adult: "false",
+    ...extraParams,
+  });
+
+  const res = await fetch(
+    `${BASE_URL}${endpoint}?${params.toString()}`,
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      `Errore TMDB durante il recupero di ${endpoint}.`
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBSeriesResponse;
+
+  return {
+    page: data.page,
+    results: data.results ?? [],
+    total_pages: data.total_pages ?? 0,
+    total_results: data.total_results ?? 0,
+  };
+}
+
+/*
+ * FILM - CATALOGO
+ */
+
+export async function getPopularMovies(
+  page = 1
+): Promise<TMDBMoviePage> {
+  return fetchMovieList("/movie/popular", page);
+}
+
+export async function getTopRatedMovies(
+  page = 1
+): Promise<TMDBMoviePage> {
+  return fetchMovieList("/movie/top_rated", page);
+}
+
+export async function getUpcomingMovies(
+  page = 1
+): Promise<TMDBMoviePage> {
+  return fetchMovieList("/movie/upcoming", page);
+}
+
+export async function getTrendingMovies(): Promise<
+  TMDBMovie[]
+> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/trending/movie/week?${params.toString()}`,
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero dei film di tendenza."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBMovieResponse;
+
+  return data.results ?? [];
+}
+
+export async function getMovieGenres(): Promise<
+  TMDBGenre[]
+> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/genre/movie/list?${params.toString()}`,
+    {
+      next: {
+        revalidate: 86400,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero dei generi cinematografici."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBGenreResponse;
+
+  return data.genres ?? [];
+}
+
+export async function discoverMovies(
+  filters: DiscoverMovieFilters = {}
+): Promise<TMDBMoviePage> {
+  const {
+    page = 1,
+    genreId,
+    year,
+    minVote,
+    sortBy = "popularity.desc",
+  } = filters;
+
+  const extraParams: Record<string, string> = {
+    sort_by: sortBy,
+    "vote_count.gte": "20",
+  };
+
+  if (genreId) {
+    extraParams.with_genres = String(genreId);
+  }
+
+  if (year) {
+    extraParams.primary_release_year =
+      String(year);
+  }
+
+  if (
+    typeof minVote === "number" &&
+    Number.isFinite(minVote)
+  ) {
+    extraParams["vote_average.gte"] =
+      String(minVote);
+  }
+
+  return fetchMovieList(
+    "/discover/movie",
+    page,
+    extraParams
+  );
+}
+
+export async function getNowPlayingMovies(): Promise<
+  TMDBMovie[]
+> {
+  const data = await fetchMovieList(
+    "/movie/now_playing",
+    1
+  );
 
   return data.results;
 }
 
-/**
- * Ricerca solo film.
- * La manteniamo per compatibilità con il codice già esistente.
+/*
+ * SERIE TV - CATALOGO
  */
+
+export async function getPopularSeries(
+  page = 1
+): Promise<TMDBSeriesPage> {
+  return fetchSeriesList("/tv/popular", page);
+}
+
+export async function getTopRatedSeries(
+  page = 1
+): Promise<TMDBSeriesPage> {
+  return fetchSeriesList("/tv/top_rated", page);
+}
+
+export async function getAiringTodaySeries(
+  page = 1
+): Promise<TMDBSeriesPage> {
+  return fetchSeriesList(
+    "/tv/airing_today",
+    page
+  );
+}
+
+export async function getTrendingSeries(): Promise<
+  TMDBSeries[]
+> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/trending/tv/week?${params.toString()}`,
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero delle serie TV di tendenza."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBSeriesResponse;
+
+  return data.results ?? [];
+}
+
+export async function getSeriesGenres(): Promise<
+  TMDBGenre[]
+> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/genre/tv/list?${params.toString()}`,
+    {
+      next: {
+        revalidate: 86400,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero dei generi delle serie TV."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBGenreResponse;
+
+  return data.genres ?? [];
+}
+
+export async function discoverSeries(
+  filters: DiscoverSeriesFilters = {}
+): Promise<TMDBSeriesPage> {
+  const {
+    page = 1,
+    genreId,
+    year,
+    minVote,
+    sortBy = "popularity.desc",
+  } = filters;
+
+  const extraParams: Record<string, string> = {
+    sort_by: sortBy,
+    "vote_count.gte": "20",
+  };
+
+  if (genreId) {
+    extraParams.with_genres =
+      String(genreId);
+  }
+
+  if (year) {
+    extraParams.first_air_date_year =
+      String(year);
+  }
+
+  if (
+    typeof minVote === "number" &&
+    Number.isFinite(minVote)
+  ) {
+    extraParams["vote_average.gte"] =
+      String(minVote);
+  }
+
+  return fetchSeriesList(
+    "/discover/tv",
+    page,
+    extraParams
+  );
+}
+
+/*
+ * RICERCA SOLO FILM
+ */
+
 export async function searchMovies(
   query: string
 ): Promise<TMDBMovie[]> {
@@ -133,17 +513,21 @@ export async function searchMovies(
   );
 
   if (!res.ok) {
-    throw new Error("Errore durante la ricerca dei film.");
+    throw new Error(
+      "Errore durante la ricerca dei film."
+    );
   }
 
-  const data = (await res.json()) as TMDBMovieResponse;
+  const data =
+    (await res.json()) as TMDBMovieResponse;
 
   return data.results;
 }
 
-/**
- * Ricerca combinata di film e serie TV.
+/*
+ * RICERCA FILM + SERIE TV
  */
+
 export async function searchMoviesAndSeries(
   query: string
 ): Promise<TMDBSearchResult[]> {
@@ -176,7 +560,8 @@ export async function searchMoviesAndSeries(
     );
   }
 
-  const data = (await res.json()) as TMDBMultiResponse;
+  const data =
+    (await res.json()) as TMDBMultiResponse;
 
   return data.results
     .filter(
@@ -195,9 +580,11 @@ export async function searchMoviesAndSeries(
           media_type: "movie",
           title: result.title,
           date: result.release_date ?? "",
-          vote_average: result.vote_average ?? 0,
+          vote_average:
+            result.vote_average ?? 0,
           poster_path: result.poster_path,
-          backdrop_path: result.backdrop_path,
+          backdrop_path:
+            result.backdrop_path,
           overview: result.overview ?? "",
         };
       }
@@ -207,13 +594,19 @@ export async function searchMoviesAndSeries(
         media_type: "tv",
         title: result.name,
         date: result.first_air_date ?? "",
-        vote_average: result.vote_average ?? 0,
+        vote_average:
+          result.vote_average ?? 0,
         poster_path: result.poster_path,
-        backdrop_path: result.backdrop_path,
+        backdrop_path:
+          result.backdrop_path,
         overview: result.overview ?? "",
       };
     });
 }
+
+/*
+ * DETTAGLIO FILM
+ */
 
 export async function getMovie(id: string) {
   checkApiKey();
@@ -257,7 +650,9 @@ export async function getMovieCredits(id: string) {
   );
 
   if (!res.ok) {
-    throw new Error("Errore nel recupero del cast.");
+    throw new Error(
+      "Errore nel recupero del cast."
+    );
   }
 
   return res.json();
@@ -281,11 +676,17 @@ export async function getMovieVideos(id: string) {
   );
 
   if (!res.ok) {
-    throw new Error("Errore nel recupero dei video.");
+    throw new Error(
+      "Errore nel recupero dei video."
+    );
   }
 
   return res.json();
 }
+
+/*
+ * DETTAGLIO SERIE TV
+ */
 
 export async function getSeries(id: string) {
   checkApiKey();
@@ -305,13 +706,17 @@ export async function getSeries(id: string) {
   );
 
   if (!res.ok) {
-    throw new Error("Serie TV non trovata.");
+    throw new Error(
+      "Serie TV non trovata."
+    );
   }
 
   return res.json();
 }
 
-export async function getSeriesCredits(id: string) {
+export async function getSeriesCredits(
+  id: string
+) {
   checkApiKey();
 
   const params = new URLSearchParams({
@@ -337,7 +742,9 @@ export async function getSeriesCredits(id: string) {
   return res.json();
 }
 
-export async function getSeriesVideos(id: string) {
+export async function getSeriesVideos(
+  id: string
+) {
   checkApiKey();
 
   const params = new URLSearchParams({
@@ -392,7 +799,13 @@ export async function getSeriesSeason(
   return res.json();
 }
 
-export function getPosterUrl(path: string | null) {
+/*
+ * IMMAGINI
+ */
+
+export function getPosterUrl(
+  path: string | null
+) {
   if (!path) {
     return "/viewvault-logo.svg";
   }
