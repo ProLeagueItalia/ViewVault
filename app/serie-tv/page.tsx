@@ -5,9 +5,11 @@ import MovieCard from "../../components/MovieCard";
 
 import {
   discoverSeries,
+  findActorByName,
   getAiringTodaySeries,
   getPopularSeries,
   getPosterUrl,
+  getSeriesByActor,
   getSeriesGenres,
   getTopRatedSeries,
   getTrendingSeries,
@@ -21,14 +23,18 @@ type SeriesPageProps = {
     | Promise<{
         page?: string;
         genre?: string;
-        year?: string;
+        yearFrom?: string;
+        yearTo?: string;
+        actor?: string;
         vote?: string;
         sort?: string;
       }>
     | {
         page?: string;
         genre?: string;
-        year?: string;
+        yearFrom?: string;
+        yearTo?: string;
+        actor?: string;
         vote?: string;
         sort?: string;
       };
@@ -42,6 +48,8 @@ const validSortOptions: SeriesSortOption[] = [
   "name.asc",
   "name.desc",
 ];
+
+const ITEMS_PER_PAGE = 20;
 
 export default async function SeriesPage({
   searchParams,
@@ -80,25 +88,63 @@ export default async function SeriesPage({
       : undefined;
 
   /*
-   * ANNO
+   * ANNO DA
    */
 
-  const rawYear =
-    params.year?.trim() ?? "";
+  const rawYearFrom =
+    params.yearFrom?.trim() ?? "";
 
-  const parsedYear =
-    Number(rawYear);
+  const parsedYearFrom =
+    Number(rawYearFrom);
 
-  const year =
-    rawYear &&
-    Number.isFinite(parsedYear) &&
-    parsedYear >= 1900 &&
-    parsedYear <= 2100
-      ? parsedYear
+  const yearFrom =
+    rawYearFrom &&
+    Number.isFinite(parsedYearFrom) &&
+    parsedYearFrom >= 1900 &&
+    parsedYearFrom <= 2100
+      ? parsedYearFrom
       : undefined;
 
   /*
-   * VOTO
+   * ANNO A
+   */
+
+  const rawYearTo =
+    params.yearTo?.trim() ?? "";
+
+  const parsedYearTo =
+    Number(rawYearTo);
+
+  const yearTo =
+    rawYearTo &&
+    Number.isFinite(parsedYearTo) &&
+    parsedYearTo >= 1900 &&
+    parsedYearTo <= 2100
+      ? parsedYearTo
+      : undefined;
+
+  /*
+   * INTERVALLO ANNI
+   */
+
+  const hasInvalidYearRange =
+    yearFrom !== undefined &&
+    yearTo !== undefined &&
+    yearFrom > yearTo;
+
+  /*
+   * ATTORE
+   */
+
+  const actorQuery =
+    params.actor?.trim() ?? "";
+
+  let actorId: number | undefined;
+  let actorDisplayName = actorQuery;
+  let actorNotFound = false;
+
+  /*
+   * VOTO MINIMO
    */
 
   const rawVote =
@@ -138,7 +184,9 @@ export default async function SeriesPage({
 
   const hasActiveFilters =
     genreId !== undefined ||
-    year !== undefined ||
+    yearFrom !== undefined ||
+    yearTo !== undefined ||
+    actorQuery.length > 0 ||
     minVote !== undefined ||
     sortBy !== "popularity.desc";
 
@@ -159,11 +207,157 @@ export default async function SeriesPage({
 
   try {
     /*
-     * CON FILTRI:
-     * carichiamo soltanto catalogo + generi.
+     * Se è stato inserito un attore,
+     * cerchiamo prima il suo ID TMDB.
      */
 
-    if (hasActiveFilters) {
+    if (actorQuery) {
+      const actor =
+        await findActorByName(actorQuery);
+
+      if (actor) {
+        actorId = actor.id;
+        actorDisplayName = actor.name;
+      } else {
+        actorNotFound = true;
+      }
+    }
+
+    /*
+     * INTERVALLO NON VALIDO
+     */
+
+    if (hasInvalidYearRange) {
+      genres = await getSeriesGenres();
+    }
+
+    /*
+     * ATTORE NON TROVATO
+     */
+
+    else if (actorNotFound) {
+      genres = await getSeriesGenres();
+    }
+
+    /*
+     * CON FILTRO ATTORE
+     *
+     * TMDB non permette with_cast direttamente
+     * su /discover/tv, quindi recuperiamo tutte
+     * le serie dell'attore e applichiamo qui
+     * gli altri filtri.
+     */
+
+    else if (actorId) {
+      const [
+        actorSeries,
+        genreResponse,
+      ] = await Promise.all([
+        getSeriesByActor(actorId),
+        getSeriesGenres(),
+      ]);
+
+      genres = genreResponse;
+
+      let filteredSeries =
+        actorSeries.filter((series) => {
+          /*
+           * GENERE
+           */
+
+          if (
+            genreId !== undefined &&
+            !series.genre_ids?.includes(
+              genreId
+            )
+          ) {
+            return false;
+          }
+
+          /*
+           * ANNO
+           */
+
+          const seriesYear =
+            getSeriesYear(
+              series.first_air_date
+            );
+
+          if (
+            yearFrom !== undefined &&
+            (seriesYear === null ||
+              seriesYear < yearFrom)
+          ) {
+            return false;
+          }
+
+          if (
+            yearTo !== undefined &&
+            (seriesYear === null ||
+              seriesYear > yearTo)
+          ) {
+            return false;
+          }
+
+          /*
+           * VOTO
+           */
+
+          if (
+            minVote !== undefined &&
+            series.vote_average <
+              minVote
+          ) {
+            return false;
+          }
+
+          return true;
+        });
+
+      /*
+       * ORDINAMENTO LOCALE
+       */
+
+      filteredSeries =
+        sortSeriesLocally(
+          filteredSeries,
+          sortBy
+        );
+
+      totalResults =
+        filteredSeries.length;
+
+      totalPages = Math.max(
+        1,
+        Math.ceil(
+          totalResults /
+            ITEMS_PER_PAGE
+        )
+      );
+
+      const safeCurrentPage =
+        Math.min(
+          currentPage,
+          totalPages
+        );
+
+      const startIndex =
+        (safeCurrentPage - 1) *
+        ITEMS_PER_PAGE;
+
+      catalogSeries =
+        filteredSeries.slice(
+          startIndex,
+          startIndex +
+            ITEMS_PER_PAGE
+        );
+    }
+
+    /*
+     * CON FILTRI SENZA ATTORE
+     */
+
+    else if (hasActiveFilters) {
       const [
         catalogResponse,
         genreResponse,
@@ -171,7 +365,8 @@ export default async function SeriesPage({
         discoverSeries({
           page: currentPage,
           genreId,
-          year,
+          yearFrom,
+          yearTo,
           minVote,
           sortBy,
         }),
@@ -191,12 +386,13 @@ export default async function SeriesPage({
         catalogResponse.total_results;
 
       genres = genreResponse;
-    } else {
-      /*
-       * SENZA FILTRI:
-       * mostriamo anche le sezioni editoriali.
-       */
+    }
 
+    /*
+     * SENZA FILTRI
+     */
+
+    else {
       const [
         trendingResponse,
         popularResponse,
@@ -285,10 +481,24 @@ export default async function SeriesPage({
     );
   }
 
-  if (year) {
+  if (yearFrom) {
     paginationBaseParams.set(
-      "year",
-      String(year)
+      "yearFrom",
+      String(yearFrom)
+    );
+  }
+
+  if (yearTo) {
+    paginationBaseParams.set(
+      "yearTo",
+      String(yearTo)
+    );
+  }
+
+  if (actorQuery) {
+    paginationBaseParams.set(
+      "actor",
+      actorQuery
     );
   }
 
@@ -323,6 +533,22 @@ export default async function SeriesPage({
 
     return `/serie-tv?${nextParams.toString()}#catalogo`;
   }
+
+  /*
+   * ANNI DISPONIBILI
+   */
+
+  const currentYear =
+    new Date().getFullYear();
+
+  const years = Array.from(
+    {
+      length:
+        currentYear - 1899,
+    },
+    (_, index) =>
+      currentYear - index
+  );
 
   return (
     <>
@@ -423,28 +649,36 @@ export default async function SeriesPage({
                     eyebrow="Il momento"
                     title="🔥 Serie di tendenza"
                     description="Le serie TV che stanno attirando più attenzione questa settimana."
-                    series={trendingSeries}
+                    series={
+                      trendingSeries
+                    }
                   />
 
                   <SeriesSection
                     eyebrow="Le più seguite"
                     title="📺 Serie popolari"
                     description="Le serie più popolari e cercate del momento."
-                    series={popularSeries}
+                    series={
+                      popularSeries
+                    }
                   />
 
                   <SeriesSection
                     eyebrow="Da non perdere"
                     title="⭐ Più votate"
                     description="Le serie TV con alcune delle valutazioni più alte."
-                    series={topRatedSeries}
+                    series={
+                      topRatedSeries
+                    }
                   />
 
                   <SeriesSection
                     eyebrow="Oggi"
                     title="📡 In onda oggi"
                     description="Le serie con nuovi episodi trasmessi oggi."
-                    series={airingTodaySeries}
+                    series={
+                      airingTodaySeries
+                    }
                   />
                 </>
               )}
@@ -468,10 +702,11 @@ export default async function SeriesPage({
                     Filtra il catalogo
                   </h2>
 
-                  <p className="mt-3 max-w-2xl text-zinc-400">
+                  <p className="mt-3 max-w-3xl text-zinc-400">
                     Restringi la selezione per
-                    genere, anno, voto minimo oppure
-                    cambia l'ordinamento.
+                    genere, intervallo di anni,
+                    attore, voto minimo oppure
+                    cambia l&apos;ordinamento.
                   </p>
                 </div>
 
@@ -480,7 +715,7 @@ export default async function SeriesPage({
                   method="GET"
                   className="rounded-3xl border border-zinc-800 bg-[#151515] p-5 md:p-6"
                 >
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
                     {/* GENERE */}
 
                     <div>
@@ -526,41 +761,34 @@ export default async function SeriesPage({
                       </select>
                     </div>
 
-                    {/* ANNO */}
+                    {/* ANNO DA */}
 
                     <div>
                       <label
-                        htmlFor="year"
+                        htmlFor="yearFrom"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Anno
+                        Dal
                       </label>
 
                       <select
-                        id="year"
-                        name="year"
+                        id="yearFrom"
+                        name="yearFrom"
                         defaultValue={
-                          year
-                            ? String(year)
+                          yearFrom
+                            ? String(
+                                yearFrom
+                              )
                             : ""
                         }
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Tutti gli anni
+                          Qualsiasi anno
                         </option>
 
-                        {Array.from(
-                          {
-                            length: 77,
-                          },
-                          (_, index) =>
-                            new Date().getFullYear() -
-                            index
-                        ).map(
-                          (
-                            itemYear
-                          ) => (
+                        {years.map(
+                          (itemYear) => (
                             <option
                               key={
                                 itemYear
@@ -576,6 +804,74 @@ export default async function SeriesPage({
                           )
                         )}
                       </select>
+                    </div>
+
+                    {/* ANNO A */}
+
+                    <div>
+                      <label
+                        htmlFor="yearTo"
+                        className="mb-2 block text-sm font-bold text-zinc-300"
+                      >
+                        Al
+                      </label>
+
+                      <select
+                        id="yearTo"
+                        name="yearTo"
+                        defaultValue={
+                          yearTo
+                            ? String(
+                                yearTo
+                              )
+                            : ""
+                        }
+                        className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
+                      >
+                        <option value="">
+                          Qualsiasi anno
+                        </option>
+
+                        {years.map(
+                          (itemYear) => (
+                            <option
+                              key={
+                                itemYear
+                              }
+                              value={
+                                itemYear
+                              }
+                            >
+                              {
+                                itemYear
+                              }
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                    {/* ATTORE */}
+
+                    <div>
+                      <label
+                        htmlFor="actor"
+                        className="mb-2 block text-sm font-bold text-zinc-300"
+                      >
+                        Attore
+                      </label>
+
+                      <input
+                        id="actor"
+                        name="actor"
+                        type="search"
+                        defaultValue={
+                          actorQuery
+                        }
+                        placeholder="Es. Pedro Pascal"
+                        autoComplete="off"
+                        className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED]"
+                      />
                     </div>
 
                     {/* VOTO */}
@@ -668,6 +964,27 @@ export default async function SeriesPage({
                     </div>
                   </div>
 
+                  {/* ERRORE INTERVALLO */}
+
+                  {hasInvalidYearRange && (
+                    <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-semibold text-red-300">
+                      ⚠️ L&apos;anno iniziale non
+                      può essere successivo
+                      all&apos;anno finale.
+                    </div>
+                  )}
+
+                  {/* ATTORE NON TROVATO */}
+
+                  {actorNotFound && (
+                    <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm font-semibold text-amber-300">
+                      🎭 Nessun attore trovato
+                      con il nome &quot;
+                      {actorQuery}&quot;.
+                      Controlla il nome e riprova.
+                    </div>
+                  )}
+
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       type="submit"
@@ -710,13 +1027,17 @@ export default async function SeriesPage({
                           : "Tutte le serie TV"}
                     </h2>
 
-                    {hasActiveFilters && (
-                      <p className="mt-3 max-w-2xl text-zinc-400">
-                        Ecco le serie che
-                        corrispondono ai filtri
-                        selezionati.
-                      </p>
-                    )}
+                    {hasActiveFilters &&
+                      !hasInvalidYearRange &&
+                      !actorNotFound && (
+                        <p className="mt-3 max-w-2xl text-zinc-400">
+                          Ecco le serie che
+                          corrispondono ai filtri
+                          che hai selezionato.
+                        </p>
+                      )}
+
+                    {/* BADGE FILTRI */}
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       {currentGenre && (
@@ -728,11 +1049,27 @@ export default async function SeriesPage({
                         </span>
                       )}
 
-                      {year && (
+                      {yearFrom && (
                         <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-sm text-zinc-300">
-                          📅 {year}
+                          📅 Dal {yearFrom}
                         </span>
                       )}
+
+                      {yearTo && (
+                        <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-sm text-zinc-300">
+                          📅 Al {yearTo}
+                        </span>
+                      )}
+
+                      {actorQuery &&
+                        !actorNotFound && (
+                          <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-sm font-semibold text-violet-300">
+                            🎬{" "}
+                            {
+                              actorDisplayName
+                            }
+                          </span>
+                        )}
 
                       {minVote !==
                         undefined && (
@@ -753,28 +1090,83 @@ export default async function SeriesPage({
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-zinc-800 bg-[#151515] px-5 py-3 text-sm text-zinc-400">
-                    <p>
-                      <span className="font-bold text-white">
-                        {totalResults.toLocaleString(
-                          "it-IT"
-                        )}
-                      </span>{" "}
-                      risultati
-                    </p>
+                  {!hasInvalidYearRange &&
+                    !actorNotFound && (
+                      <div className="rounded-2xl border border-zinc-800 bg-[#151515] px-5 py-3 text-sm text-zinc-400">
+                        <p>
+                          <span className="font-bold text-white">
+                            {totalResults.toLocaleString(
+                              "it-IT"
+                            )}
+                          </span>{" "}
+                          risultati
+                        </p>
 
-                    <p className="mt-1">
-                      Pagina{" "}
-                      {currentPage} di{" "}
-                      {totalPages}
-                    </p>
-                  </div>
+                        <p className="mt-1">
+                          Pagina{" "}
+                          {currentPage} di{" "}
+                          {totalPages}
+                        </p>
+                      </div>
+                    )}
                 </div>
 
-                {/* RISULTATI */}
+                {/* INTERVALLO ERRATO */}
 
-                {catalogSeries.length >
-                0 ? (
+                {hasInvalidYearRange ? (
+                  <div className="rounded-3xl border border-red-500/30 bg-red-500/10 px-6 py-16 text-center">
+                    <p className="text-5xl">
+                      📅
+                    </p>
+
+                    <h3 className="mt-5 text-2xl font-bold text-red-200">
+                      Intervallo anni non valido
+                    </h3>
+
+                    <p className="mt-3 text-zinc-400">
+                      Hai selezionato un anno
+                      iniziale successivo
+                      all&apos;anno finale.
+                    </p>
+
+                    <a
+                      href="#filtri"
+                      className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
+                    >
+                      Correggi i filtri
+                    </a>
+                  </div>
+                ) : actorNotFound ? (
+                  /* ATTORE NON TROVATO */
+
+                  <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 px-6 py-16 text-center">
+                    <p className="text-5xl">
+                      🎭
+                    </p>
+
+                    <h3 className="mt-5 text-2xl font-bold text-amber-200">
+                      Attore non trovato
+                    </h3>
+
+                    <p className="mx-auto mt-3 max-w-xl text-zinc-400">
+                      Non abbiamo trovato
+                      &quot;{actorQuery}&quot;
+                      nel database. Prova a
+                      controllare il nome
+                      dell&apos;attore.
+                    </p>
+
+                    <a
+                      href="#filtri"
+                      className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
+                    >
+                      Modifica attore
+                    </a>
+                  </div>
+                ) : catalogSeries.length >
+                  0 ? (
+                  /* SERIE */
+
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {catalogSeries.map(
                       (series) => (
@@ -790,6 +1182,8 @@ export default async function SeriesPage({
                     )}
                   </div>
                 ) : (
+                  /* NESSUN RISULTATO */
+
                   <div className="rounded-3xl border border-dashed border-zinc-700 bg-[#151515] px-6 py-16 text-center">
                     <p className="text-5xl">
                       🕵️
@@ -815,41 +1209,43 @@ export default async function SeriesPage({
 
                 {/* PAGINAZIONE */}
 
-                {catalogSeries.length >
-                  0 && (
-                  <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-                    {currentPage >
-                      1 && (
-                      <Link
-                        href={buildPageHref(
-                          currentPage -
-                            1
-                        )}
-                        className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3 font-bold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
-                      >
-                        ← Pagina precedente
-                      </Link>
-                    )}
+                {!hasInvalidYearRange &&
+                  !actorNotFound &&
+                  catalogSeries.length >
+                    0 && (
+                    <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+                      {currentPage >
+                        1 && (
+                        <Link
+                          href={buildPageHref(
+                            currentPage -
+                              1
+                          )}
+                          className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3 font-bold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
+                        >
+                          ← Pagina precedente
+                        </Link>
+                      )}
 
-                    <span className="rounded-full bg-[#7C3AED]/15 px-5 py-3 text-sm font-bold text-[#A78BFA]">
-                      {currentPage} /{" "}
-                      {totalPages}
-                    </span>
+                      <span className="rounded-full bg-[#7C3AED]/15 px-5 py-3 text-sm font-bold text-[#A78BFA]">
+                        {currentPage} /{" "}
+                        {totalPages}
+                      </span>
 
-                    {currentPage <
-                      totalPages && (
-                      <Link
-                        href={buildPageHref(
-                          currentPage +
-                            1
-                        )}
-                        className="rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
-                      >
-                        Pagina successiva →
-                      </Link>
-                    )}
-                  </div>
-                )}
+                      {currentPage <
+                        totalPages && (
+                        <Link
+                          href={buildPageHref(
+                            currentPage +
+                              1
+                          )}
+                          className="rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
+                        >
+                          Pagina successiva →
+                        </Link>
+                      )}
+                    </div>
+                  )}
               </section>
             </>
           )}
@@ -948,6 +1344,129 @@ function SeriesCard({
 }
 
 /*
+ * ANNO SERIE
+ */
+
+function getSeriesYear(
+  firstAirDate: string
+) {
+  if (!firstAirDate) {
+    return null;
+  }
+
+  const year =
+    Number(
+      firstAirDate.slice(
+        0,
+        4
+      )
+    );
+
+  return Number.isFinite(year)
+    ? year
+    : null;
+}
+
+/*
+ * ORDINAMENTO LOCALE
+ *
+ * Serve soprattutto quando stiamo
+ * filtrando le serie di un attore.
+ */
+
+function sortSeriesLocally(
+  series: TMDBSeries[],
+  sort: SeriesSortOption
+) {
+  const cloned = [...series];
+
+  if (
+    sort === "vote_average.desc"
+  ) {
+    return cloned.sort(
+      (a, b) =>
+        b.vote_average -
+        a.vote_average
+    );
+  }
+
+  if (
+    sort ===
+    "first_air_date.desc"
+  ) {
+    return cloned.sort(
+      (a, b) =>
+        getDateValue(
+          b.first_air_date
+        ) -
+        getDateValue(
+          a.first_air_date
+        )
+    );
+  }
+
+  if (
+    sort ===
+    "first_air_date.asc"
+  ) {
+    return cloned.sort(
+      (a, b) =>
+        getDateValue(
+          a.first_air_date
+        ) -
+        getDateValue(
+          b.first_air_date
+        )
+    );
+  }
+
+  if (sort === "name.asc") {
+    return cloned.sort(
+      (a, b) =>
+        a.name.localeCompare(
+          b.name,
+          "it"
+        )
+    );
+  }
+
+  if (sort === "name.desc") {
+    return cloned.sort(
+      (a, b) =>
+        b.name.localeCompare(
+          a.name,
+          "it"
+        )
+    );
+  }
+
+  /*
+   * POPOLARITÀ
+   */
+
+  return cloned.sort(
+    (a, b) =>
+      (b.popularity ?? 0) -
+      (a.popularity ?? 0)
+  );
+}
+
+function getDateValue(
+  date: string
+) {
+  if (!date) {
+    return 0;
+  }
+
+  const value =
+    new Date(date).getTime();
+
+  return Number.isFinite(value)
+    ? value
+    : 0;
+}
+
+/*
  * ETICHETTA ORDINAMENTO
  */
 
@@ -961,13 +1480,15 @@ function getSortLabel(
   }
 
   if (
-    sort === "first_air_date.desc"
+    sort ===
+    "first_air_date.desc"
   ) {
     return "Più recenti";
   }
 
   if (
-    sort === "first_air_date.asc"
+    sort ===
+    "first_air_date.asc"
   ) {
     return "Più vecchie";
   }

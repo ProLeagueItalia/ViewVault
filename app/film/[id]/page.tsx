@@ -2,6 +2,7 @@ import BackButton from "../../../components/BackButton";
 import MovieVaultActions, {
   type MovieVaultStatus,
 } from "../../../components/MovieVaultActions";
+import MovieReview from "../../../components/MovieReview";
 
 import { createClient } from "../../../lib/supabase/server";
 
@@ -64,6 +65,8 @@ type VideosResponse = {
 type VaultStatusRow = {
   status: "watched" | "watchlist";
   is_favorite: boolean;
+  rating: number | null;
+  review: string | null;
 };
 
 export default async function MoviePage({
@@ -105,11 +108,15 @@ export default async function MoviePage({
 
   let vaultStatus: MovieVaultStatus = null;
   let isFavorite = false;
+  let userRating: number | null = null;
+  let userReview = "";
 
   if (user) {
     const { data, error } = await supabase
       .from("vault_items")
-      .select("status, is_favorite")
+      .select(
+        "status, is_favorite, rating, review"
+      )
       .eq("user_id", user.id)
       .eq("tmdb_id", movie.id)
       .eq("media_type", "movie")
@@ -135,7 +142,14 @@ export default async function MoviePage({
       vaultRow?.status === "watchlist"
     ) {
       vaultStatus = vaultRow.status;
-      isFavorite = vaultRow.is_favorite ?? false;
+      isFavorite =
+        vaultRow.is_favorite ?? false;
+
+      userRating =
+        vaultRow.rating ?? null;
+
+      userReview =
+        vaultRow.review ?? "";
     }
   }
 
@@ -283,6 +297,14 @@ export default async function MoviePage({
             </div>
           </div>
 
+          {vaultStatus === "watched" && (
+            <MovieReview
+              movieId={movie.id}
+              initialRating={userRating}
+              initialReview={userReview}
+            />
+          )}
+
           {trailer && (
             <section className="mt-16">
               <h2 className="text-3xl font-bold">
@@ -292,7 +314,7 @@ export default async function MoviePage({
               <div className="mt-6 overflow-hidden rounded-3xl border border-zinc-800">
                 <iframe
                   className="aspect-video w-full"
-                  src={`https://www.youtube.com/embed/${trailer.key}`}
+                  src={`https://www.youtube-nocookie.com/embed/${trailer.key}`}
                   title={`Trailer di ${movie.title}`}
                   allowFullScreen
                 />
@@ -355,7 +377,11 @@ function InfoBox({
   value,
 }: {
   label: string;
-  value: string | number | undefined | null;
+  value:
+    | string
+    | number
+    | undefined
+    | null;
 }) {
   const displayValue =
     value === undefined ||

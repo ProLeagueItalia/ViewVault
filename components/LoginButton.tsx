@@ -1,6 +1,7 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   type FormEvent,
@@ -39,18 +40,21 @@ export default function LoginButton() {
 
     async function loadUser() {
       const {
-        data: { user: currentUser },
+        data: { session },
         error,
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getSession();
 
       if (error) {
         console.error(
-          "Errore nel recupero dell'utente:",
+          "Errore nel recupero della sessione:",
           error
         );
+
+        setUser(null);
+        return;
       }
 
-      setUser(currentUser);
+      setUser(session?.user ?? null);
     }
 
     loadUser();
@@ -153,6 +157,7 @@ export default function LoginButton() {
       setMessage(
         "La password deve contenere almeno 6 caratteri."
       );
+
       setHasError(true);
       return;
     }
@@ -260,6 +265,7 @@ export default function LoginButton() {
       setMessage(
         "Inserisci prima il tuo indirizzo email."
       );
+
       setHasError(true);
       return;
     }
@@ -270,7 +276,7 @@ export default function LoginButton() {
       await supabase.auth.resetPasswordForEmail(
         cleanEmail,
         {
-          redirectTo: `${window.location.origin}/auth/callback?next=/`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
         }
       );
 
@@ -511,27 +517,31 @@ export default function LoginButton() {
         )
       : null;
 
-  if (user) {
-    return (
-      <div className="flex items-center gap-3">
-        <span className="hidden text-sm font-semibold text-zinc-200 md:block">
-          {user.user_metadata?.name ||
-            user.user_metadata?.full_name ||
-            user.user_metadata?.user_name ||
-            user.email ||
-            "Utente"}
-        </span>
+if (user) {
+  return (
+    <div className="flex items-center gap-3">
+      <Link
+        href="/account"
+        title="Gestione account"
+        className="hidden rounded-full px-3 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-[#A78BFA] md:block"
+      >
+        {user.user_metadata?.name ||
+          user.user_metadata?.full_name ||
+          user.user_metadata?.user_name ||
+          user.email ||
+          "Utente"}
+      </Link>
 
-        <button
-          type="button"
-          onClick={logout}
-          className="rounded-full border border-zinc-700 px-5 py-2 font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
-        >
-          Logout
-        </button>
-      </div>
-    );
-  }
+      <button
+        type="button"
+        onClick={logout}
+        className="rounded-full border border-zinc-700 px-5 py-2 font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
+      >
+        Logout
+      </button>
+    </div>
+  );
+}
 
   return (
     <>

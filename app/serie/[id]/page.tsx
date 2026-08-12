@@ -2,6 +2,9 @@ import BackButton from "../../../components/BackButton";
 import SeasonEpisodes, {
   type SeasonWithEpisodes,
 } from "../../../components/SeasonEpisodes";
+import SeriesReview from "../../../components/SeriesReview";
+
+import { createClient } from "../../../lib/supabase/server";
 
 import {
   getSeries,
@@ -90,6 +93,17 @@ type SeasonDetailsResponse = {
   episodes?: SeasonEpisode[];
 };
 
+type SeriesProgressRow = {
+  watched_episodes: number;
+  total_episodes: number;
+  status: "watchlist" | "in_progress" | "watched";
+};
+
+type SeriesVaultRow = {
+  rating: number | null;
+  review: string | null;
+};
+
 export default async function SeriesPage({
   params,
 }: PageProps) {
@@ -170,6 +184,91 @@ export default async function SeriesPage({
           firstSeason.season_number -
           secondSeason.season_number
       );
+
+  /*
+   * PROGRESSO + RECENSIONE UTENTE
+   */
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let watchedEpisodesCount = 0;
+  let progressStatus:
+    | "watchlist"
+    | "in_progress"
+    | "watched"
+    | null = null;
+
+  let userRating: number | null = null;
+  let userReview = "";
+
+  if (user) {
+    const [
+      progressResponse,
+      vaultResponse,
+    ] = await Promise.all([
+      supabase
+        .from("series_progress")
+        .select(
+          "watched_episodes, total_episodes, status"
+        )
+        .eq("user_id", user.id)
+        .eq("series_id", series.id)
+        .maybeSingle(),
+
+      supabase
+        .from("vault_items")
+        .select("rating, review")
+        .eq("user_id", user.id)
+        .eq("tmdb_id", series.id)
+        .eq("media_type", "tv")
+        .maybeSingle(),
+    ]);
+
+    if (progressResponse.error) {
+      console.error(
+        "Errore nel recupero del progresso della serie:",
+        progressResponse.error
+      );
+    }
+
+    if (vaultResponse.error) {
+      console.error(
+        "Errore nel recupero della recensione della serie:",
+        vaultResponse.error
+      );
+    }
+
+    const progressRow =
+      progressResponse.data as
+        | SeriesProgressRow
+        | null;
+
+    const vaultRow =
+      vaultResponse.data as
+        | SeriesVaultRow
+        | null;
+
+    watchedEpisodesCount =
+      progressRow?.watched_episodes ?? 0;
+
+    progressStatus =
+      progressRow?.status ?? null;
+
+    userRating =
+      vaultRow?.rating ?? null;
+
+    userReview =
+      vaultRow?.review ?? "";
+  }
+
+  const canReviewSeries =
+    watchedEpisodesCount > 0 ||
+    progressStatus === "in_progress" ||
+    progressStatus === "watched";
 
   return (
     <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
@@ -302,6 +401,16 @@ export default async function SeriesPage({
             </section>
           )}
 
+          {/* VOTO E RECENSIONE */}
+
+          {canReviewSeries && (
+            <SeriesReview
+              seriesId={series.id}
+              initialRating={userRating}
+              initialReview={userReview}
+            />
+          )}
+
           {/* TRAILER */}
           {trailer && (
             <section className="mt-16">
@@ -312,7 +421,7 @@ export default async function SeriesPage({
               <div className="mt-6 overflow-hidden rounded-3xl border border-zinc-800">
                 <iframe
                   className="aspect-video w-full"
-                  src={`https://www.youtube.com/embed/${trailer.key}`}
+                  src={`https://www.youtube-nocookie.com/embed/${trailer.key}`}
                   title={`Trailer di ${series.name}`}
                   allowFullScreen
                 />

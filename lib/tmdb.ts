@@ -22,6 +22,14 @@ export type TMDBSeries = {
   poster_path: string | null;
   backdrop_path: string | null;
   overview: string;
+
+  /*
+   * Questi campi sono utili quando
+   * recuperiamo le serie dai crediti
+   * di un attore.
+   */
+  genre_ids?: number[];
+  popularity?: number;
 };
 
 export type TMDBSearchResult = {
@@ -54,6 +62,22 @@ export type TMDBGenre = {
   name: string;
 };
 
+/*
+ * PERSONA TMDB
+ *
+ * Ci serve per trasformare il nome
+ * dell'attore nel suo ID TMDB.
+ */
+
+export type TMDBPerson = {
+  id: number;
+  name: string;
+  original_name?: string;
+  profile_path: string | null;
+  known_for_department?: string;
+  popularity?: number;
+};
+
 export type MovieSortOption =
   | "popularity.desc"
   | "vote_average.desc"
@@ -70,18 +94,31 @@ export type SeriesSortOption =
   | "name.asc"
   | "name.desc";
 
+/*
+ * FILTRI FILM
+ */
+
 export type DiscoverMovieFilters = {
   page?: number;
   genreId?: number;
-  year?: number;
+  yearFrom?: number;
+  yearTo?: number;
+  actorId?: number;
   minVote?: number;
   sortBy?: MovieSortOption;
 };
 
+/*
+ * FILTRI SERIE TV
+ *
+ * Per ora rimangono invariati.
+ */
+
 export type DiscoverSeriesFilters = {
   page?: number;
   genreId?: number;
-  year?: number;
+  yearFrom?: number;
+  yearTo?: number;
   minVote?: number;
   sortBy?: SeriesSortOption;
 };
@@ -102,6 +139,13 @@ type TMDBSeriesResponse = {
 
 type TMDBGenreResponse = {
   genres: TMDBGenre[];
+};
+
+type TMDBPersonResponse = {
+  page: number;
+  results: TMDBPerson[];
+  total_pages: number;
+  total_results: number;
 };
 
 type TMDBMultiMovieResult = TMDBMovie & {
@@ -129,6 +173,10 @@ type TMDBMultiResponse = {
   total_results: number;
 };
 
+/*
+ * CONTROLLO API KEY
+ */
+
 function checkApiKey() {
   if (!API_KEY) {
     throw new Error(
@@ -136,6 +184,10 @@ function checkApiKey() {
     );
   }
 }
+
+/*
+ * FETCH GENERICO FILM
+ */
 
 async function fetchMovieList(
   endpoint: string,
@@ -177,6 +229,10 @@ async function fetchMovieList(
     total_results: data.total_results ?? 0,
   };
 }
+
+/*
+ * FETCH GENERICO SERIE TV
+ */
 
 async function fetchSeriesList(
   endpoint: string,
@@ -226,19 +282,28 @@ async function fetchSeriesList(
 export async function getPopularMovies(
   page = 1
 ): Promise<TMDBMoviePage> {
-  return fetchMovieList("/movie/popular", page);
+  return fetchMovieList(
+    "/movie/popular",
+    page
+  );
 }
 
 export async function getTopRatedMovies(
   page = 1
 ): Promise<TMDBMoviePage> {
-  return fetchMovieList("/movie/top_rated", page);
+  return fetchMovieList(
+    "/movie/top_rated",
+    page
+  );
 }
 
 export async function getUpcomingMovies(
   page = 1
 ): Promise<TMDBMoviePage> {
-  return fetchMovieList("/movie/upcoming", page);
+  return fetchMovieList(
+    "/movie/upcoming",
+    page
+  );
 }
 
 export async function getTrendingMovies(): Promise<
@@ -272,6 +337,10 @@ export async function getTrendingMovies(): Promise<
   return data.results ?? [];
 }
 
+/*
+ * GENERI FILM
+ */
+
 export async function getMovieGenres(): Promise<
   TMDBGenre[]
 > {
@@ -303,13 +372,122 @@ export async function getMovieGenres(): Promise<
   return data.genres ?? [];
 }
 
+/*
+ * RICERCA PERSONE
+ *
+ * Questa funzione cerca una persona
+ * all'interno del database TMDB.
+ */
+
+export async function searchPeople(
+  query: string
+): Promise<TMDBPerson[]> {
+  checkApiKey();
+
+  const cleanQuery = query.trim();
+
+  if (!cleanQuery) {
+    return [];
+  }
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+    query: cleanQuery,
+    page: "1",
+    include_adult: "false",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/search/person?${params.toString()}`,
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore durante la ricerca dell'attore."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBPersonResponse;
+
+  return data.results ?? [];
+}
+
+/*
+ * TROVA ATTORE DAL NOME
+ *
+ * L'utente potrà scrivere per esempio:
+ *
+ * Leonardo DiCaprio
+ * Tom Hanks
+ * Brad Pitt
+ *
+ * ViewVault cercherà la persona su TMDB
+ * e ricaverà automaticamente il suo ID.
+ */
+
+export async function findActorByName(
+  query: string
+): Promise<TMDBPerson | null> {
+  const cleanQuery = query.trim();
+
+  if (!cleanQuery) {
+    return null;
+  }
+
+  const people =
+    await searchPeople(cleanQuery);
+
+  if (people.length === 0) {
+    return null;
+  }
+
+  const normalizedQuery =
+    cleanQuery.toLocaleLowerCase("it-IT");
+
+  /*
+   * Prima proviamo a trovare
+   * una corrispondenza esatta.
+   */
+
+  const exactMatch =
+    people.find(
+      (person) =>
+        person.name
+          .toLocaleLowerCase("it-IT") ===
+        normalizedQuery
+    );
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  /*
+   * Se non troviamo una corrispondenza
+   * esatta prendiamo il risultato
+   * più rilevante restituito da TMDB.
+   */
+
+  return people[0] ?? null;
+}
+
+/*
+ * DISCOVER FILM
+ */
+
 export async function discoverMovies(
   filters: DiscoverMovieFilters = {}
 ): Promise<TMDBMoviePage> {
   const {
     page = 1,
     genreId,
-    year,
+    yearFrom,
+    yearTo,
+    actorId,
     minVote,
     sortBy = "popularity.desc",
   } = filters;
@@ -319,14 +497,51 @@ export async function discoverMovies(
     "vote_count.gte": "20",
   };
 
+  /*
+   * GENERE
+   */
+
   if (genreId) {
-    extraParams.with_genres = String(genreId);
+    extraParams.with_genres =
+      String(genreId);
   }
 
-  if (year) {
-    extraParams.primary_release_year =
-      String(year);
+  /*
+   * ANNO DA
+   */
+
+  if (yearFrom) {
+    extraParams[
+      "primary_release_date.gte"
+    ] = `${yearFrom}-01-01`;
   }
+
+  /*
+   * ANNO A
+   */
+
+  if (yearTo) {
+    extraParams[
+      "primary_release_date.lte"
+    ] = `${yearTo}-12-31`;
+  }
+
+  /*
+   * ATTORE
+   *
+   * TMDB usa with_cast per filtrare
+   * i film in cui compare una persona
+   * specifica nel cast.
+   */
+
+  if (actorId) {
+    extraParams.with_cast =
+      String(actorId);
+  }
+
+  /*
+   * VOTO MINIMO
+   */
 
   if (
     typeof minVote === "number" &&
@@ -342,6 +557,10 @@ export async function discoverMovies(
     extraParams
   );
 }
+
+/*
+ * FILM AL CINEMA
+ */
 
 export async function getNowPlayingMovies(): Promise<
   TMDBMovie[]
@@ -361,13 +580,19 @@ export async function getNowPlayingMovies(): Promise<
 export async function getPopularSeries(
   page = 1
 ): Promise<TMDBSeriesPage> {
-  return fetchSeriesList("/tv/popular", page);
+  return fetchSeriesList(
+    "/tv/popular",
+    page
+  );
 }
 
 export async function getTopRatedSeries(
   page = 1
 ): Promise<TMDBSeriesPage> {
-  return fetchSeriesList("/tv/top_rated", page);
+  return fetchSeriesList(
+    "/tv/top_rated",
+    page
+  );
 }
 
 export async function getAiringTodaySeries(
@@ -376,6 +601,54 @@ export async function getAiringTodaySeries(
   return fetchSeriesList(
     "/tv/airing_today",
     page
+  );
+}
+
+/*
+ * NUOVE SERIE TV
+ *
+ * Recupera serie TV realmente nuove,
+ * basandosi sulla data della prima messa in onda.
+ *
+ * Consideriamo "nuove" le serie che hanno
+ * debuttato negli ultimi 12 mesi.
+ */
+
+export async function getNewSeries(
+  page = 1
+): Promise<TMDBSeriesPage> {
+  const today = new Date();
+
+  const twelveMonthsAgo = new Date(today);
+  twelveMonthsAgo.setFullYear(
+    twelveMonthsAgo.getFullYear() - 1
+  );
+
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+
+    const month = String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      date.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  return fetchSeriesList(
+    "/discover/tv",
+    page,
+    {
+      sort_by: "first_air_date.desc",
+      "first_air_date.gte":
+        formatDate(twelveMonthsAgo),
+      "first_air_date.lte":
+        formatDate(today),
+      "vote_count.gte": "10",
+    }
   );
 }
 
@@ -410,6 +683,10 @@ export async function getTrendingSeries(): Promise<
   return data.results ?? [];
 }
 
+/*
+ * GENERI SERIE TV
+ */
+
 export async function getSeriesGenres(): Promise<
   TMDBGenre[]
 > {
@@ -441,13 +718,18 @@ export async function getSeriesGenres(): Promise<
   return data.genres ?? [];
 }
 
+/*
+ * DISCOVER SERIE TV
+ */
+
 export async function discoverSeries(
   filters: DiscoverSeriesFilters = {}
 ): Promise<TMDBSeriesPage> {
   const {
     page = 1,
     genreId,
-    year,
+    yearFrom,
+    yearTo,
     minVote,
     sortBy = "popularity.desc",
   } = filters;
@@ -457,15 +739,38 @@ export async function discoverSeries(
     "vote_count.gte": "20",
   };
 
+  /*
+   * GENERE
+   */
+
   if (genreId) {
     extraParams.with_genres =
       String(genreId);
   }
 
-  if (year) {
-    extraParams.first_air_date_year =
-      String(year);
+  /*
+   * ANNO DA
+   */
+
+  if (yearFrom) {
+    extraParams[
+      "first_air_date.gte"
+    ] = `${yearFrom}-01-01`;
   }
+
+  /*
+   * ANNO A
+   */
+
+  if (yearTo) {
+    extraParams[
+      "first_air_date.lte"
+    ] = `${yearTo}-12-31`;
+  }
+
+  /*
+   * VOTO MINIMO
+   */
 
   if (
     typeof minVote === "number" &&
@@ -482,6 +787,104 @@ export async function discoverSeries(
   );
 }
 
+
+/*
+ * SERIE TV DI UN ATTORE
+ *
+ * TMDB non supporta with_cast direttamente
+ * dentro /discover/tv.
+ *
+ * Per questo recuperiamo i crediti combinati
+ * della persona e conserviamo soltanto
+ * i contenuti di tipo TV.
+ */
+
+type TMDBCombinedTvCredit = TMDBSeries & {
+  media_type: "tv";
+};
+
+type TMDBCombinedMovieCredit = {
+  id: number;
+  media_type: "movie";
+};
+
+type TMDBCombinedCredit =
+  | TMDBCombinedTvCredit
+  | TMDBCombinedMovieCredit;
+
+type TMDBCombinedCreditsResponse = {
+  cast?: TMDBCombinedCredit[];
+};
+
+export async function getSeriesByActor(
+  actorId: number
+): Promise<TMDBSeries[]> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/person/${actorId}/combined_credits?${params.toString()}`,
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero delle serie TV dell'attore."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBCombinedCreditsResponse;
+
+  const series =
+    data.cast?.filter(
+      (
+        credit
+      ): credit is TMDBCombinedTvCredit =>
+        credit.media_type === "tv"
+    ) ?? [];
+
+  const uniqueSeries =
+    new Map<number, TMDBSeries>();
+
+  for (const item of series) {
+    if (!uniqueSeries.has(item.id)) {
+      uniqueSeries.set(
+        item.id,
+        {
+          id: item.id,
+          name: item.name,
+          first_air_date:
+            item.first_air_date ?? "",
+          vote_average:
+            item.vote_average ?? 0,
+          poster_path:
+            item.poster_path ?? null,
+          backdrop_path:
+            item.backdrop_path ?? null,
+          overview:
+            item.overview ?? "",
+          genre_ids:
+            item.genre_ids ?? [],
+          popularity:
+            item.popularity ?? 0,
+        }
+      );
+    }
+  }
+
+  return Array.from(
+    uniqueSeries.values()
+  );
+}
 /*
  * RICERCA SOLO FILM
  */
@@ -582,10 +985,12 @@ export async function searchMoviesAndSeries(
           date: result.release_date ?? "",
           vote_average:
             result.vote_average ?? 0,
-          poster_path: result.poster_path,
+          poster_path:
+            result.poster_path,
           backdrop_path:
             result.backdrop_path,
-          overview: result.overview ?? "",
+          overview:
+            result.overview ?? "",
         };
       }
 
@@ -593,13 +998,16 @@ export async function searchMoviesAndSeries(
         id: result.id,
         media_type: "tv",
         title: result.name,
-        date: result.first_air_date ?? "",
+        date:
+          result.first_air_date ?? "",
         vote_average:
           result.vote_average ?? 0,
-        poster_path: result.poster_path,
+        poster_path:
+          result.poster_path,
         backdrop_path:
           result.backdrop_path,
-        overview: result.overview ?? "",
+        overview:
+          result.overview ?? "",
       };
     });
 }
@@ -608,7 +1016,9 @@ export async function searchMoviesAndSeries(
  * DETTAGLIO FILM
  */
 
-export async function getMovie(id: string) {
+export async function getMovie(
+  id: string
+) {
   checkApiKey();
 
   const params = new URLSearchParams({
@@ -626,13 +1036,17 @@ export async function getMovie(id: string) {
   );
 
   if (!res.ok) {
-    throw new Error("Film non trovato.");
+    throw new Error(
+      "Film non trovato."
+    );
   }
 
   return res.json();
 }
 
-export async function getMovieCredits(id: string) {
+export async function getMovieCredits(
+  id: string
+) {
   checkApiKey();
 
   const params = new URLSearchParams({
@@ -658,7 +1072,9 @@ export async function getMovieCredits(id: string) {
   return res.json();
 }
 
-export async function getMovieVideos(id: string) {
+export async function getMovieVideos(
+  id: string
+) {
   checkApiKey();
 
   const params = new URLSearchParams({
@@ -688,7 +1104,9 @@ export async function getMovieVideos(id: string) {
  * DETTAGLIO SERIE TV
  */
 
-export async function getSeries(id: string) {
+export async function getSeries(
+  id: string
+) {
   checkApiKey();
 
   const params = new URLSearchParams({

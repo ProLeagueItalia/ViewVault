@@ -2,6 +2,7 @@ import Image from "next/image";
 import Navbar from "../components/Navbar";
 import StatsCards from "../components/StatsCards";
 import NewMovies from "../components/NewMovies";
+import NewSeries from "../components/NewSeries";
 
 export default function Home() {
   return (
@@ -19,12 +20,16 @@ export default function Home() {
         />
 
         <h1 className="text-5xl font-bold tracking-tight md:text-7xl">
-          View<span className="text-[#7C3AED]">Vault</span>
+          View
+          <span className="text-[#7C3AED]">
+            Vault
+          </span>
         </h1>
 
         <p className="mt-6 max-w-xl text-lg text-zinc-300 md:text-2xl">
-          Tieni traccia di film e serie TV, conta le ore viste, vota,
-          recensisci e costruisci il tuo Vault personale.
+          Tieni traccia di film e serie TV, conta
+          le ore viste, vota, recensisci e
+          costruisci il tuo Vault personale.
         </p>
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -38,6 +43,7 @@ export default function Home() {
         </div>
 
         {/* Barra di ricerca */}
+
         <form
           action="/ricerca"
           method="GET"
@@ -63,6 +69,8 @@ export default function Home() {
       <StatsCards />
 
       <NewMovies />
+
+      <NewSeries />
     </main>
   );
 }
