@@ -75,6 +75,23 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
+  // PROFILO VIEWVAULT
+  // Questa è la fonte principale per nome e avatar.
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("username, display_name, avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("Errore nel recupero del profilo Dashboard:", {
+      message: profileError.message,
+      details: profileError.details,
+      hint: profileError.hint,
+      code: profileError.code,
+    });
+  }
+
   const [
     vaultResponse,
     progressResponse,
@@ -110,15 +127,12 @@ export default async function DashboardPage() {
   ]);
 
   if (vaultResponse.error) {
-    console.error(
-      "Errore nel recupero del Vault:",
-      {
-        message: vaultResponse.error.message,
-        details: vaultResponse.error.details,
-        hint: vaultResponse.error.hint,
-        code: vaultResponse.error.code,
-      }
-    );
+    console.error("Errore nel recupero del Vault:", {
+      message: vaultResponse.error.message,
+      details: vaultResponse.error.details,
+      hint: vaultResponse.error.hint,
+      code: vaultResponse.error.code,
+    });
   }
 
   if (progressResponse.error) {
@@ -134,24 +148,19 @@ export default async function DashboardPage() {
   }
 
   if (watchedEpisodesResponse.error) {
-    console.error(
-      "Errore nel conteggio degli episodi:",
-      {
-        message: watchedEpisodesResponse.error.message,
-        details: watchedEpisodesResponse.error.details,
-        hint: watchedEpisodesResponse.error.hint,
-        code: watchedEpisodesResponse.error.code,
-      }
-    );
+    console.error("Errore nel conteggio degli episodi:", {
+      message: watchedEpisodesResponse.error.message,
+      details: watchedEpisodesResponse.error.details,
+      hint: watchedEpisodesResponse.error.hint,
+      code: watchedEpisodesResponse.error.code,
+    });
   }
 
   const vaultItems =
     (vaultResponse.data as VaultItem[] | null) ?? [];
 
   const seriesProgress =
-    (progressResponse.data as
-      | SeriesProgress[]
-      | null) ?? [];
+    (progressResponse.data as SeriesProgress[] | null) ?? [];
 
   const filmsWatched = vaultItems.filter(
     (item) =>
@@ -211,9 +220,7 @@ export default async function DashboardPage() {
 
   const recentResults = await Promise.allSettled(
     recentVaultItems.map(
-      async (
-        item
-      ): Promise<RecentContent> => {
+      async (item): Promise<RecentContent> => {
         if (item.media_type === "movie") {
           const movie = (await getMovie(
             String(item.tmdb_id)
@@ -227,9 +234,7 @@ export default async function DashboardPage() {
             year: movie.release_date
               ? movie.release_date.slice(0, 4)
               : "N/D",
-            posterUrl: getPosterUrl(
-              movie.poster_path
-            ),
+            posterUrl: getPosterUrl(movie.poster_path),
             status: item.status,
             createdAt: item.created_at,
           };
@@ -247,9 +252,7 @@ export default async function DashboardPage() {
           year: series.first_air_date
             ? series.first_air_date.slice(0, 4)
             : "N/D",
-          posterUrl: getPosterUrl(
-            series.poster_path
-          ),
+          posterUrl: getPosterUrl(series.poster_path),
           status: item.status,
           createdAt: item.created_at,
         };
@@ -267,9 +270,7 @@ export default async function DashboardPage() {
     .map((result) => result.value);
 
   const inProgressRows = seriesProgress
-    .filter(
-      (item) => item.status === "in_progress"
-    )
+    .filter((item) => item.status === "in_progress")
     .slice(0, 4);
 
   const activeSeriesResults =
@@ -297,9 +298,7 @@ export default async function DashboardPage() {
             year: series.first_air_date
               ? series.first_air_date.slice(0, 4)
               : "N/D",
-            posterUrl: getPosterUrl(
-              series.poster_path
-            ),
+            posterUrl: getPosterUrl(series.poster_path),
             watchedEpisodes:
               progressItem.watched_episodes,
             totalEpisodes:
@@ -319,9 +318,14 @@ export default async function DashboardPage() {
     )
     .map((result) => result.value);
 
+  // IDENTITÀ UTENTE
+  // Prima utilizziamo il profilo ViewVault.
+  // I metadata Auth restano solo come fallback.
   const metadata = user.user_metadata ?? {};
 
   const displayName =
+    profile?.display_name ||
+    profile?.username ||
     metadata.full_name ||
     metadata.name ||
     metadata.user_name ||
@@ -330,6 +334,7 @@ export default async function DashboardPage() {
     "Utente";
 
   const avatarUrl =
+    profile?.avatar_url ||
     metadata.avatar_url ||
     metadata.picture ||
     null;
@@ -355,9 +360,9 @@ export default async function DashboardPage() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-lg text-zinc-400">
-              Bentornato nel tuo Vault. Qui trovi i
-              progressi reali dei tuoi film, delle
-              serie TV e degli episodi completati.
+              Bentornato nel tuo Vault. Qui trovi i progressi
+              reali dei tuoi film, delle serie TV e degli
+              episodi completati.
             </p>
           </div>
 
@@ -471,8 +476,7 @@ export default async function DashboardPage() {
 
                       <div className="min-w-0 py-1">
                         <span className="text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
-                          {content.mediaType ===
-                          "movie"
+                          {content.mediaType === "movie"
                             ? "Film"
                             : "Serie TV"}
                         </span>
@@ -487,8 +491,7 @@ export default async function DashboardPage() {
 
                         <span
                           className={`mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold ${
-                            content.status ===
-                            "watched"
+                            content.status === "watched"
                               ? "bg-green-600/20 text-green-400"
                               : "bg-[#7C3AED]/15 text-[#A78BFA]"
                           }`}
@@ -508,8 +511,8 @@ export default async function DashboardPage() {
                   </p>
 
                   <p className="mt-2 text-zinc-500">
-                    Cerca un film o una serie TV e
-                    aggiungi il primo contenuto.
+                    Cerca un film o una serie TV e aggiungi
+                    il primo contenuto.
                   </p>
 
                   <Link
@@ -612,9 +615,7 @@ export default async function DashboardPage() {
                         {series.totalEpisodes} episodi
                       </span>
 
-                      <span>
-                        {series.percentage}%
-                      </span>
+                      <span>{series.percentage}%</span>
                     </div>
 
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
@@ -642,8 +643,8 @@ export default async function DashboardPage() {
               </h3>
 
               <p className="mt-2 text-zinc-500">
-                Segna il primo episodio visto e la
-                serie comparirà automaticamente qui.
+                Segna il primo episodio visto e la serie
+                comparirà automaticamente qui.
               </p>
             </div>
           )}

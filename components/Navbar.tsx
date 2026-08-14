@@ -1,3 +1,5 @@
+import NotificationBell from "./NotificationBell";
+
 import Link from "next/link";
 
 import LoginButton from "./LoginButton";
@@ -50,9 +52,17 @@ export default function Navbar() {
           >
             Dashboard
           </Link>
+
+          <Link
+            href="/community"
+            className="transition hover:text-[#A78BFA]"
+          >
+            Community
+          </Link>
         </nav>
 
-        <div className="shrink-0">
+        <div className="flex shrink-0 items-center gap-3">
+          <NotificationBell />
           <LoginButton />
         </div>
       </div>

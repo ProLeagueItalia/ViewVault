@@ -22,6 +22,7 @@ export default function LoginButton() {
   const supabase = useMemo(() => createClient(), []);
 
   const [user, setUser] = useState<User | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -54,7 +55,33 @@ export default function LoginButton() {
         return;
       }
 
-      setUser(session?.user ?? null);
+     const currentUser = session?.user ?? null;
+
+setUser(currentUser);
+
+if (!currentUser) {
+  setUsername(null);
+  return;
+}
+
+const { data: profile, error: profileError } =
+  await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", currentUser.id)
+    .single();
+
+if (profileError) {
+  console.error(
+    "Errore nel recupero dello username:",
+    profileError
+  );
+
+  setUsername(null);
+  return;
+}
+
+setUsername(profile?.username ?? null);
     }
 
     loadUser();
@@ -521,15 +548,11 @@ if (user) {
   return (
     <div className="flex items-center gap-3">
       <Link
-        href="/account"
+        href="/account/profile"
         title="Gestione account"
         className="hidden rounded-full px-3 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-[#A78BFA] md:block"
       >
-        {user.user_metadata?.name ||
-          user.user_metadata?.full_name ||
-          user.user_metadata?.user_name ||
-          user.email ||
-          "Utente"}
+        {username ? `@${username}` : "Profilo"}
       </Link>
 
       <button
