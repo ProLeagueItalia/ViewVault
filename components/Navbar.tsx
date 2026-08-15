@@ -1,7 +1,7 @@
-import NotificationBell from "./NotificationBell";
-
+import Image from "next/image";
 import Link from "next/link";
 
+import NotificationBell from "./NotificationBell";
 import LoginButton from "./LoginButton";
 
 export default function Navbar() {
@@ -10,11 +10,17 @@ export default function Navbar() {
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-6">
         <Link
           href="/"
-          className="shrink-0 text-2xl font-black tracking-tight transition hover:opacity-80 md:text-3xl"
+          className="flex shrink-0 items-center transition duration-300 hover:scale-[1.02] hover:opacity-90"
           aria-label="Torna alla Home di ViewVault"
         >
-          <span className="text-white">View</span>
-          <span className="text-[#7C3AED]">Vault</span>
+          <Image
+            src="/viewvault-logo-new.png"
+            alt="ViewVault"
+            width={250}
+            height={80}
+            priority
+            className="h-auto w-[180px] object-contain md:w-[220px]"
+          />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-semibold text-zinc-300 lg:flex">

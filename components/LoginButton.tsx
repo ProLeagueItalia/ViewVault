@@ -548,12 +548,12 @@ if (user) {
   return (
     <div className="flex items-center gap-3">
       <Link
-        href="/account/profile"
-        title="Gestione account"
-        className="hidden rounded-full px-3 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-[#A78BFA] md:block"
-      >
-        {username ? `@${username}` : "Profilo"}
-      </Link>
+  href={username ? `/u/${username}` : "/account/profile"}
+  title={username ? "Visualizza il mio profilo pubblico" : "Gestione account"}
+  className="hidden rounded-full px-3 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-[#A78BFA] md:block"
+>
+  {username ? `@${username}` : "Profilo"}
+</Link>
 
       <button
         type="button"

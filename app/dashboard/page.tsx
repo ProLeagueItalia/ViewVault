@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import Navbar from "../../components/Navbar";
 import BackButton from "../../components/BackButton";
 import { createClient } from "../../lib/supabase/server";
 
@@ -340,11 +341,13 @@ export default async function DashboardPage() {
     null;
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] px-6 pb-16 pt-28 text-white">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <BackButton fallbackHref="/" />
-        </div>
+  <main className="min-h-screen bg-[#0D0D0D] text-white">
+    <Navbar />
+
+    <div className="mx-auto max-w-7xl px-6 pb-16 pt-12">
+      <div className="mb-8">
+        <BackButton fallbackHref="/" />
+      </div>
 
         <section className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>

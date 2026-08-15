@@ -11,22 +11,15 @@ export default function Home() {
 
       <section className="flex min-h-[85vh] flex-col items-center justify-center px-6 pt-32 text-center">
         <Image
-          src="/viewvault-logo.svg"
-          alt="ViewVault logo"
-          width={170}
-          height={170}
+          src="/viewvault-logo-new.png"
+          alt="ViewVault"
+          width={900}
+          height={320}
           priority
-          className="mb-8 drop-shadow-[0_0_35px_rgba(124,58,237,0.8)]"
+          className="mb-4 h-auto w-full max-w-[720px] object-contain drop-shadow-[0_0_45px_rgba(124,58,237,0.45)] md:max-w-[820px]"
         />
 
-        <h1 className="text-5xl font-bold tracking-tight md:text-7xl">
-          View
-          <span className="text-[#7C3AED]">
-            Vault
-          </span>
-        </h1>
-
-        <p className="mt-6 max-w-xl text-lg text-zinc-300 md:text-2xl">
+        <p className="mt-4 max-w-2xl text-lg text-zinc-300 md:text-2xl">
           Tieni traccia di film e serie TV, conta
           le ore viste, vota, recensisci e
           costruisci il tuo Vault personale.

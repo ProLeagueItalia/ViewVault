@@ -52,16 +52,28 @@ type SeriesDetails = {
   poster_path: string | null;
 };
 
-type RecentContent = {
+type ActivityRow = {
   id: string;
+  activity_type: string;
+  media_type: "movie" | "tv" | null;
+  tmdb_id: number | null;
+  rating: number | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string | null;
+};
+
+type ActivityContent = {
+  id: string;
+  activityType: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
   title: string;
   year: string;
   posterUrl: string;
-  status: string;
   rating: number | null;
   review: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
   createdAt: string | null;
 };
 
@@ -74,27 +86,82 @@ type FriendshipStatus =
 
 function getActivityLabel(
   displayName: string,
-  content: RecentContent
+  activity: ActivityContent
 ) {
-  if (content.review) {
-    return `${displayName} ha recensito`;
-  }
+  switch (activity.activityType) {
+    case "watched_movie":
+      return `${displayName} ha visto`;
 
-  if (content.rating !== null) {
-    return `${displayName} ha dato ${content.rating}/10 a`;
-  }
+    case "watched_episode":
+      return `${displayName} ha visto un episodio di`;
 
-  if (content.status === "watched") {
-    return content.mediaType === "movie"
-      ? `${displayName} ha visto`
-      : `${displayName} ha completato`;
-  }
+    case "rated":
+      return activity.rating !== null
+        ? `${displayName} ha dato ${activity.rating}/10 a`
+        : `${displayName} ha votato`;
 
-  if (content.status === "watchlist") {
-    return `${displayName} ha aggiunto alla watchlist`;
-  }
+    case "reviewed":
+      return `${displayName} ha recensito`;
 
-  return `${displayName} ha aggiornato`;
+    case "watchlist_added":
+      return `${displayName} ha aggiunto alla watchlist`;
+
+    case "favorite_added":
+      return `${displayName} ha aggiunto ai preferiti`;
+
+    case "favorite_removed":
+      return `${displayName} ha rimosso dai preferiti`;
+
+    case "started_series":
+      return `${displayName} ha iniziato`;
+
+    case "completed_series":
+      return `${displayName} ha completato`;
+
+    default:
+      return `${displayName} ha aggiornato`;
+  }
+}
+
+function getActivityBadge(
+  activity: ActivityContent
+) {
+  switch (activity.activityType) {
+    case "watched_movie":
+      return "✓ Film visto";
+
+    case "watched_episode":
+      return activity.seasonNumber !== null &&
+        activity.episodeNumber !== null
+        ? `🍿 S${activity.seasonNumber} · E${activity.episodeNumber}`
+        : "🍿 Episodio visto";
+
+    case "rated":
+      return activity.rating !== null
+        ? `⭐ ${activity.rating}/10`
+        : "⭐ Voto";
+
+    case "reviewed":
+      return "✍️ Recensione";
+
+    case "watchlist_added":
+      return "📌 Watchlist";
+
+    case "favorite_added":
+      return "❤️ Preferito";
+
+    case "favorite_removed":
+      return "♡ Rimosso dai preferiti";
+
+    case "started_series":
+      return "▶️ Serie iniziata";
+
+    case "completed_series":
+      return "✅ Serie completata";
+
+    default:
+      return "🎞️ Attività";
+  }
 }
 
 function formatActivityDate(
@@ -358,6 +425,7 @@ const isPrivate =
     vaultResponse,
     progressResponse,
     watchedEpisodesResponse,
+    activitiesResponse,
   ] = await Promise.all([
     supabase
       .from("vault_items")
@@ -399,6 +467,23 @@ const isPrivate =
         "user_id",
         profile.id
       ),
+
+    supabase
+      .from("activities")
+      .select(
+        "id, activity_type, media_type, tmdb_id, rating, metadata, created_at"
+      )
+      .eq(
+        "user_id",
+        profile.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        }
+      )
+      .limit(12),
   ]);
 
   const vaultItems =
@@ -461,28 +546,63 @@ const isPrivate =
         ).toFixed(1)
       : null;
 
-  const recentVaultItems =
-    vaultItems.slice(0, 8);
+  const activityRows =
+    (activitiesResponse.data as
+      | ActivityRow[]
+      | null) ?? [];
 
-  const recentResults =
+  const activityResults =
     await Promise.allSettled(
-      recentVaultItems.map(
+      activityRows.map(
         async (
-          item
-        ): Promise<RecentContent> => {
+          activity
+        ): Promise<ActivityContent> => {
           if (
-            item.media_type ===
+            !activity.tmdb_id ||
+            !activity.media_type
+          ) {
+            throw new Error(
+              "Attività senza contenuto TMDB."
+            );
+          }
+
+          const metadata =
+            activity.metadata ?? {};
+
+          const seasonNumber =
+            typeof metadata.season_number ===
+            "number"
+              ? metadata.season_number
+              : null;
+
+          const episodeNumber =
+            typeof metadata.episode_number ===
+            "number"
+              ? metadata.episode_number
+              : null;
+
+          const review =
+            typeof metadata.review ===
+            "string"
+              ? metadata.review
+              : null;
+
+          if (
+            activity.media_type ===
             "movie"
           ) {
             const movie =
               (await getMovie(
                 String(
-                  item.tmdb_id
+                  activity.tmdb_id
                 )
               )) as MovieDetails;
 
             return {
-              id: item.id,
+              id:
+                activity.id,
+              activityType:
+                activity.activity_type,
               tmdbId:
                 movie.id,
               mediaType:
@@ -500,26 +620,30 @@ const isPrivate =
                 getPosterUrl(
                   movie.poster_path
                 ),
-              status:
-                item.status,
               rating:
-                item.rating,
-              review:
-                item.review,
+                activity.rating,
+              review,
+              seasonNumber:
+                null,
+              episodeNumber:
+                null,
               createdAt:
-                item.created_at,
+                activity.created_at,
             };
           }
 
           const series =
             (await getSeries(
               String(
-                item.tmdb_id
+                activity.tmdb_id
               )
             )) as SeriesDetails;
 
           return {
-            id: item.id,
+            id:
+              activity.id,
+            activityType:
+              activity.activity_type,
             tmdbId:
               series.id,
             mediaType:
@@ -537,25 +661,24 @@ const isPrivate =
               getPosterUrl(
                 series.poster_path
               ),
-            status:
-              item.status,
             rating:
-              item.rating,
-            review:
-              item.review,
+              activity.rating,
+            review,
+            seasonNumber,
+            episodeNumber,
             createdAt:
-              item.created_at,
+              activity.created_at,
           };
         }
       )
     );
 
-  const recentContents =
-    recentResults
+  const recentActivities =
+    activityResults
       .filter(
         (
           result
-        ): result is PromiseFulfilledResult<RecentContent> =>
+        ): result is PromiseFulfilledResult<ActivityContent> =>
           result.status ===
           "fulfilled"
       )
@@ -771,39 +894,43 @@ const isPrivate =
           </h2>
 
           <p className="mt-2 text-zinc-500">
-            Gli ultimi
-            aggiornamenti pubblici
-            di {displayName}.
+            Gli ultimi aggiornamenti di{" "}
+            {displayName}.
           </p>
 
-          {recentContents.length >
+          {recentActivities.length >
           0 ? (
             <div className="mt-7 space-y-4">
-              {recentContents.map(
+              {recentActivities.map(
                 (
-                  content
+                  activity
                 ) => {
                   const href =
-                    content.mediaType ===
+                    activity.mediaType ===
                     "movie"
-                      ? `/film/${content.tmdbId}`
-                      : `/serie/${content.tmdbId}`;
+                      ? `/film/${activity.tmdbId}`
+                      : `/serie/${activity.tmdbId}`;
 
                   const activityLabel =
                     getActivityLabel(
                       displayName,
-                      content
+                      activity
+                    );
+
+                  const activityBadge =
+                    getActivityBadge(
+                      activity
                     );
 
                   const activityDate =
                     formatActivityDate(
-                      content.createdAt
+                      activity.createdAt
                     );
 
                   return (
                     <article
                       key={
-                        content.id
+                        activity.id
                       }
                       className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-5 transition hover:border-[#7C3AED]/60"
                     >
@@ -816,10 +943,10 @@ const isPrivate =
                         >
                           <img
                             src={
-                              content.posterUrl
+                              activity.posterUrl
                             }
                             alt={
-                              content.title
+                              activity.title
                             }
                             className="h-32 w-24 rounded-2xl object-cover"
                           />
@@ -841,18 +968,18 @@ const isPrivate =
                                 className="mt-1 block text-xl font-bold transition hover:text-[#A78BFA]"
                               >
                                 {
-                                  content.title
+                                  activity.title
                                 }
                               </Link>
 
                               <p className="mt-1 text-sm text-zinc-500">
-                                {content.mediaType ===
+                                {activity.mediaType ===
                                 "movie"
                                   ? "Film"
                                   : "Serie TV"}{" "}
                                 ·{" "}
                                 {
-                                  content.year
+                                  activity.year
                                 }
                               </p>
                             </div>
@@ -867,33 +994,27 @@ const isPrivate =
                           </div>
 
                           <div className="mt-4 flex flex-wrap gap-2">
-                            <span
-                              className={`rounded-full px-3 py-1 text-xs font-bold ${
-                                content.status ===
-                                "watched"
-                                  ? "bg-green-600/20 text-green-400"
-                                  : "bg-[#7C3AED]/15 text-[#A78BFA]"
-                              }`}
-                            >
-                              {content.status ===
-                              "watched"
-                                ? "✓ Visto"
-                                : "📌 Watchlist"}
+                            <span className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold text-[#C4B5FD]">
+                              {
+                                activityBadge
+                              }
                             </span>
 
-                            {content.rating !==
-                              null && (
-                              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300">
-                                ⭐{" "}
-                                {
-                                  content.rating
-                                }
-                                /10
-                              </span>
-                            )}
+                            {activity.activityType !==
+                              "rated" &&
+                              activity.rating !==
+                                null && (
+                                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300">
+                                  ⭐{" "}
+                                  {
+                                    activity.rating
+                                  }
+                                  /10
+                                </span>
+                              )}
                           </div>
 
-                          {content.review && (
+                          {activity.review && (
                             <div className="mt-4 rounded-2xl border border-zinc-800 bg-black/20 p-4">
                               <p className="text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
                                 Recensione
@@ -902,7 +1023,7 @@ const isPrivate =
                               <p className="mt-2 line-clamp-3 leading-6 text-zinc-300">
                                 “
                                 {
-                                  content.review
+                                  activity.review
                                 }
                                 ”
                               </p>
@@ -922,8 +1043,11 @@ const isPrivate =
               </div>
 
               <p className="mt-4 font-semibold">
-                Nessuna attività
-                ancora
+                Nessuna attività ancora
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-500">
+                Film, episodi, voti e recensioni compariranno qui.
               </p>
             </div>
           )}
