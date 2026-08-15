@@ -1,4 +1,5 @@
 import Navbar from "../../components/Navbar";
+import BackButton from "../../components/BackButton";
 
 const features = [
   {
@@ -32,8 +33,13 @@ export default function CommunityPage() {
     <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
-        {/* HERO */}
+<section className="mx-auto max-w-6xl px-6 pb-24 pt-6">
+  {/* PULSANTE INDIETRO */}
+  <div className="mb-8">
+    <BackButton fallbackHref="/" />
+  </div>
+
+  {/* HERO */}
         <div className="overflow-hidden rounded-[2rem] border border-[#7C3AED]/30 bg-gradient-to-br from-[#24153A] via-[#18181B] to-[#111827] p-8 md:p-12">
           <div className="max-w-3xl">
             <div className="inline-flex items-center rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-[#C4B5FD]">

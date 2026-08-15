@@ -1,8 +1,12 @@
+import Navbar from "../../../components/Navbar";
 import BackButton from "../../../components/BackButton";
 import SeasonEpisodes, {
   type SeasonWithEpisodes,
 } from "../../../components/SeasonEpisodes";
 import SeriesReview from "../../../components/SeriesReview";
+import SeriesVaultActions, {
+  type SeriesVaultStatus,
+} from "../../../components/SeriesVaultActions";
 
 import { createClient } from "../../../lib/supabase/server";
 
@@ -100,6 +104,8 @@ type SeriesProgressRow = {
 };
 
 type SeriesVaultRow = {
+  status: "watchlist" | "watched";
+  is_favorite: boolean;
   rating: number | null;
   review: string | null;
 };
@@ -204,6 +210,11 @@ export default async function SeriesPage({
 
   let userRating: number | null = null;
   let userReview = "";
+  let isFavorite = false;
+let vaultItemStatus:
+  | "watchlist"
+  | "watched"
+  | null = null;
 
   if (user) {
     const [
@@ -220,12 +231,14 @@ export default async function SeriesPage({
         .maybeSingle(),
 
       supabase
-        .from("vault_items")
-        .select("rating, review")
-        .eq("user_id", user.id)
-        .eq("tmdb_id", series.id)
-        .eq("media_type", "tv")
-        .maybeSingle(),
+  .from("vault_items")
+  .select(
+    "status, is_favorite, rating, review"
+  )
+  .eq("user_id", user.id)
+  .eq("tmdb_id", series.id)
+  .eq("media_type", "tv")
+  .maybeSingle(),
     ]);
 
     if (progressResponse.error) {
@@ -258,12 +271,29 @@ export default async function SeriesPage({
     progressStatus =
       progressRow?.status ?? null;
 
-    userRating =
-      vaultRow?.rating ?? null;
+    vaultItemStatus =
+  vaultRow?.status ?? null;
 
-    userReview =
-      vaultRow?.review ?? "";
+isFavorite =
+  vaultRow?.is_favorite ?? false;
+
+userRating =
+  vaultRow?.rating ?? null;
+
+userReview =
+  vaultRow?.review ?? "";
   }
+
+const seriesVaultStatus: SeriesVaultStatus =
+  progressStatus === "watched"
+    ? "watched"
+    : progressStatus === "in_progress"
+      ? "in_progress"
+      : vaultItemStatus === "watchlist"
+        ? "watchlist"
+        : progressStatus === "watchlist"
+          ? "watchlist"
+          : null;
 
   const canReviewSeries =
     watchedEpisodesCount > 0 ||
@@ -271,9 +301,11 @@ export default async function SeriesPage({
     progressStatus === "watched";
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
-      <section
-        className="relative min-h-screen bg-cover bg-center"
+  <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
+    <Navbar />
+
+    <section
+      className="relative min-h-screen bg-cover bg-center"
         style={{
           backgroundImage: backdropUrl
             ? `linear-gradient(
@@ -286,7 +318,7 @@ export default async function SeriesPage({
         }}
       >
         <div className="mx-auto max-w-7xl px-6 py-10">
-          <BackButton fallbackHref="/ricerca" />
+          <BackButton fallbackHref="/serie-tv" />
 
           <div className="mt-14 grid gap-10 md:grid-cols-[340px_1fr]">
             <div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import AppHeader from "../../components/AppHeader";
+import BackButton from "../../components/BackButton";
 import MovieCard from "../../components/MovieCard";
 
 import {
@@ -433,10 +434,15 @@ export default async function FilmPage({
 
   return (
     <>
-      <AppHeader />
+    <AppHeader />
 
-      <main className="min-h-screen bg-[#0D0D0D] pb-24 text-white">
-        {/* HERO */}
+    <main className="min-h-screen bg-[#0D0D0D] pb-24 text-white">
+      {/* PULSANTE INDIETRO */}
+      <div className="mx-auto max-w-7xl px-6 pt-6">
+        <BackButton fallbackHref="/" />
+      </div>
+
+      {/* HERO */}
 
         <section className="border-b border-zinc-800 bg-gradient-to-b from-[#17101F] via-[#0D0D0D] to-[#0D0D0D]">
           <div className="mx-auto max-w-7xl px-6 pb-16 pt-16">

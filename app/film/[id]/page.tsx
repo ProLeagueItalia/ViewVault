@@ -1,3 +1,4 @@
+import Navbar from "../../../components/Navbar";
 import BackButton from "../../../components/BackButton";
 import MovieVaultActions, {
   type MovieVaultStatus,
@@ -170,8 +171,10 @@ export default async function MoviePage({
     : "Durata non disponibile";
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
-      <section
+  <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
+    <Navbar />
+
+    <section
         className="relative min-h-screen bg-cover bg-center"
         style={{
           backgroundImage: backdropUrl
