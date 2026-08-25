@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   useEffect,
   useMemo,
@@ -55,13 +56,25 @@ export default function VaultLibrary({
   items,
 }: VaultLibraryProps) {
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+
+  const urlFilter = getValidFilter(
+    searchParams.get("filter")
+  );
+
+  const urlMediaType = getValidMediaType(
+    searchParams.get("type")
+  );
 
   const [libraryItems, setLibraryItems] =
     useState<VaultMediaItem[]>(items);
 
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] =
-    useState<FilterType>("all");
+    useState<FilterType>(urlFilter);
+
+  const [mediaTypeFilter, setMediaTypeFilter] =
+    useState<"movie" | "tv" | null>(urlMediaType);
   const [sortBy, setSortBy] =
     useState<SortType>("recent");
 
@@ -76,6 +89,11 @@ export default function VaultLibrary({
   useEffect(() => {
     setLibraryItems(items);
   }, [items]);
+
+  useEffect(() => {
+    setActiveFilter(urlFilter);
+    setMediaTypeFilter(urlMediaType);
+  }, [urlFilter, urlMediaType]);
 
   function updateItemStatus(
     vaultId: string,
@@ -192,6 +210,13 @@ export default function VaultLibrary({
         return false;
       }
 
+      if (
+        mediaTypeFilter &&
+        item.mediaType !== mediaTypeFilter
+      ) {
+        return false;
+      }
+
       if (activeFilter === "movie") {
         return item.mediaType === "movie";
       }
@@ -276,6 +301,7 @@ export default function VaultLibrary({
   }, [
     activeFilter,
     libraryItems,
+    mediaTypeFilter,
     query,
     sortBy,
   ]);
@@ -452,9 +478,10 @@ export default function VaultLibrary({
               <button
                 key={filter.value}
                 type="button"
-                onClick={() =>
-                  setActiveFilter(filter.value)
-                }
+                onClick={() => {
+                  setActiveFilter(filter.value);
+                  setMediaTypeFilter(null);
+                }}
                 className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                   isActive
                     ? "bg-[#7C3AED] text-white"
@@ -485,7 +512,7 @@ export default function VaultLibrary({
           </p>
 
           <h2 className="mt-1 text-2xl font-bold">
-            {getFilterTitle(activeFilter)}
+            {getFilterTitle(activeFilter, mediaTypeFilter)}
           </h2>
         </div>
 
@@ -538,6 +565,7 @@ export default function VaultLibrary({
             onClick={() => {
               setQuery("");
               setActiveFilter("all");
+              setMediaTypeFilter(null);
             }}
             className="mt-6 rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
           >
@@ -756,7 +784,10 @@ function StatCard({
   );
 }
 
-function getFilterTitle(filter: FilterType) {
+function getFilterTitle(
+  filter: FilterType,
+  mediaType: "movie" | "tv" | null
+) {
   if (filter === "movie") {
     return "Film";
   }
@@ -770,6 +801,14 @@ function getFilterTitle(filter: FilterType) {
   }
 
   if (filter === "watched") {
+    if (mediaType === "movie") {
+      return "Film visti";
+    }
+
+    if (mediaType === "tv") {
+      return "Serie completate";
+    }
+
     return "Contenuti completati";
   }
 
@@ -782,4 +821,31 @@ function getFilterTitle(filter: FilterType) {
   }
 
   return "Tutto il Vault";
+}
+
+function getValidFilter(
+  value: string | null
+): FilterType {
+  if (
+    value === "movie" ||
+    value === "tv" ||
+    value === "in_progress" ||
+    value === "watched" ||
+    value === "watchlist" ||
+    value === "favorites"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+function getValidMediaType(
+  value: string | null
+): "movie" | "tv" | null {
+  if (value === "movie" || value === "tv") {
+    return value;
+  }
+
+  return null;
 }

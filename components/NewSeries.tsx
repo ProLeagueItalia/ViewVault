@@ -1,4 +1,6 @@
+import Link from "next/link";
 import MovieCard from "./MovieCard";
+
 import {
   getNewSeries,
   getPosterUrl,
@@ -11,17 +13,17 @@ export default async function NewSeries() {
 
   return (
     <section className="mx-auto mt-20 max-w-7xl px-6">
-      <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-3xl font-bold">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold sm:text-3xl">
           📺 Nuove Serie TV
         </h2>
 
-        <a
+        <Link
           href="/serie-tv"
-          className="text-sm font-semibold text-[#7C3AED] transition hover:text-[#2563EB]"
+          className="shrink-0 rounded-full border border-[#7C3AED]/40 px-4 py-2 text-sm font-semibold text-[#A78BFA] transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/10 hover:text-white"
         >
           Vedi tutte
-        </a>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
@@ -33,10 +35,8 @@ export default async function NewSeries() {
               id={serie.id}
               title={serie.name}
               year={
-                serie.first_air_date?.slice(
-                  0,
-                  4
-                ) || "N/D"
+                serie.first_air_date?.slice(0, 4) ||
+                "N/D"
               }
               rating={`⭐ ${serie.vote_average.toFixed(
                 1

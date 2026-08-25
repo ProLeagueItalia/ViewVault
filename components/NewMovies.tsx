@@ -1,3 +1,4 @@
+import Link from "next/link";
 import MovieCard from "./MovieCard";
 import {
   getNowPlayingMovies,
@@ -5,19 +6,21 @@ import {
 } from "../lib/tmdb";
 
 export default async function NewMovies() {
-  const movies =
-    await getNowPlayingMovies();
+  const movies = await getNowPlayingMovies();
 
   return (
     <section className="mx-auto mt-20 max-w-7xl px-6">
-      <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-3xl font-bold">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold sm:text-3xl">
           🎬 Nuovi Film
         </h2>
 
-        <button className="text-sm font-semibold text-[#7C3AED] hover:text-[#2563EB]">
+        <Link
+          href="/film"
+          className="shrink-0 rounded-full border border-[#7C3AED]/40 px-4 py-2 text-sm font-semibold text-[#A78BFA] transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/10 hover:text-white"
+        >
           Vedi tutti
-        </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
@@ -29,10 +32,8 @@ export default async function NewMovies() {
               id={movie.id}
               title={movie.title}
               year={
-                movie.release_date?.slice(
-                  0,
-                  4
-                ) || "N/D"
+              movie.release_date?.slice(0, 4) ||
+                "N/D"
               }
               rating={`⭐ ${movie.vote_average.toFixed(
                 1

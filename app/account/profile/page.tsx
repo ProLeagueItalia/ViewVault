@@ -42,6 +42,204 @@ const GENRES = [
   "Documentario",
 ];
 
+const COUNTRIES = [
+  { code: "IT", name: "Italia" },
+  { code: "AD", name: "Andorra" },
+  { code: "AE", name: "Emirati Arabi Uniti" },
+  { code: "AF", name: "Afghanistan" },
+  { code: "AG", name: "Antigua e Barbuda" },
+  { code: "AL", name: "Albania" },
+  { code: "AM", name: "Armenia" },
+  { code: "AO", name: "Angola" },
+  { code: "AR", name: "Argentina" },
+  { code: "AT", name: "Austria" },
+  { code: "AU", name: "Australia" },
+  { code: "AZ", name: "Azerbaigian" },
+  { code: "BA", name: "Bosnia ed Erzegovina" },
+  { code: "BB", name: "Barbados" },
+  { code: "BD", name: "Bangladesh" },
+  { code: "BE", name: "Belgio" },
+  { code: "BF", name: "Burkina Faso" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "BH", name: "Bahrein" },
+  { code: "BI", name: "Burundi" },
+  { code: "BJ", name: "Benin" },
+  { code: "BN", name: "Brunei" },
+  { code: "BO", name: "Bolivia" },
+  { code: "BR", name: "Brasile" },
+  { code: "BS", name: "Bahamas" },
+  { code: "BT", name: "Bhutan" },
+  { code: "BW", name: "Botswana" },
+  { code: "BY", name: "Bielorussia" },
+  { code: "BZ", name: "Belize" },
+  { code: "CA", name: "Canada" },
+  { code: "CD", name: "Repubblica Democratica del Congo" },
+  { code: "CF", name: "Repubblica Centrafricana" },
+  { code: "CG", name: "Repubblica del Congo" },
+  { code: "CH", name: "Svizzera" },
+  { code: "CI", name: "Costa d'Avorio" },
+  { code: "CL", name: "Cile" },
+  { code: "CM", name: "Camerun" },
+  { code: "CN", name: "Cina" },
+  { code: "CO", name: "Colombia" },
+  { code: "CR", name: "Costa Rica" },
+  { code: "CU", name: "Cuba" },
+  { code: "CV", name: "Capo Verde" },
+  { code: "CY", name: "Cipro" },
+  { code: "CZ", name: "Cechia" },
+  { code: "DE", name: "Germania" },
+  { code: "DJ", name: "Gibuti" },
+  { code: "DK", name: "Danimarca" },
+  { code: "DM", name: "Dominica" },
+  { code: "DO", name: "Repubblica Dominicana" },
+  { code: "DZ", name: "Algeria" },
+  { code: "EC", name: "Ecuador" },
+  { code: "EE", name: "Estonia" },
+  { code: "EG", name: "Egitto" },
+  { code: "ER", name: "Eritrea" },
+  { code: "ES", name: "Spagna" },
+  { code: "ET", name: "Etiopia" },
+  { code: "FI", name: "Finlandia" },
+  { code: "FJ", name: "Figi" },
+  { code: "FR", name: "Francia" },
+  { code: "GA", name: "Gabon" },
+  { code: "GB", name: "Regno Unito" },
+  { code: "GD", name: "Grenada" },
+  { code: "GE", name: "Georgia" },
+  { code: "GH", name: "Ghana" },
+  { code: "GM", name: "Gambia" },
+  { code: "GN", name: "Guinea" },
+  { code: "GQ", name: "Guinea Equatoriale" },
+  { code: "GR", name: "Grecia" },
+  { code: "GT", name: "Guatemala" },
+  { code: "GW", name: "Guinea-Bissau" },
+  { code: "GY", name: "Guyana" },
+  { code: "HN", name: "Honduras" },
+  { code: "HR", name: "Croazia" },
+  { code: "HT", name: "Haiti" },
+  { code: "HU", name: "Ungheria" },
+  { code: "ID", name: "Indonesia" },
+  { code: "IE", name: "Irlanda" },
+  { code: "IL", name: "Israele" },
+  { code: "IN", name: "India" },
+  { code: "IQ", name: "Iraq" },
+  { code: "IR", name: "Iran" },
+  { code: "IS", name: "Islanda" },
+  { code: "JM", name: "Giamaica" },
+  { code: "JO", name: "Giordania" },
+  { code: "JP", name: "Giappone" },
+  { code: "KE", name: "Kenya" },
+  { code: "KG", name: "Kirghizistan" },
+  { code: "KH", name: "Cambogia" },
+  { code: "KI", name: "Kiribati" },
+  { code: "KM", name: "Comore" },
+  { code: "KN", name: "Saint Kitts e Nevis" },
+  { code: "KP", name: "Corea del Nord" },
+  { code: "KR", name: "Corea del Sud" },
+  { code: "KW", name: "Kuwait" },
+  { code: "KZ", name: "Kazakistan" },
+  { code: "LA", name: "Laos" },
+  { code: "LB", name: "Libano" },
+  { code: "LC", name: "Saint Lucia" },
+  { code: "LI", name: "Liechtenstein" },
+  { code: "LK", name: "Sri Lanka" },
+  { code: "LR", name: "Liberia" },
+  { code: "LS", name: "Lesotho" },
+  { code: "LT", name: "Lituania" },
+  { code: "LU", name: "Lussemburgo" },
+  { code: "LV", name: "Lettonia" },
+  { code: "LY", name: "Libia" },
+  { code: "MA", name: "Marocco" },
+  { code: "MC", name: "Monaco" },
+  { code: "MD", name: "Moldavia" },
+  { code: "ME", name: "Montenegro" },
+  { code: "MG", name: "Madagascar" },
+  { code: "MH", name: "Isole Marshall" },
+  { code: "MK", name: "Macedonia del Nord" },
+  { code: "ML", name: "Mali" },
+  { code: "MM", name: "Myanmar" },
+  { code: "MN", name: "Mongolia" },
+  { code: "MR", name: "Mauritania" },
+  { code: "MT", name: "Malta" },
+  { code: "MU", name: "Mauritius" },
+  { code: "MV", name: "Maldive" },
+  { code: "MW", name: "Malawi" },
+  { code: "MX", name: "Messico" },
+  { code: "MY", name: "Malesia" },
+  { code: "MZ", name: "Mozambico" },
+  { code: "NA", name: "Namibia" },
+  { code: "NE", name: "Niger" },
+  { code: "NG", name: "Nigeria" },
+  { code: "NI", name: "Nicaragua" },
+  { code: "NL", name: "Paesi Bassi" },
+  { code: "NO", name: "Norvegia" },
+  { code: "NP", name: "Nepal" },
+  { code: "NR", name: "Nauru" },
+  { code: "NZ", name: "Nuova Zelanda" },
+  { code: "OM", name: "Oman" },
+  { code: "PA", name: "Panama" },
+  { code: "PE", name: "Perù" },
+  { code: "PG", name: "Papua Nuova Guinea" },
+  { code: "PH", name: "Filippine" },
+  { code: "PK", name: "Pakistan" },
+  { code: "PL", name: "Polonia" },
+  { code: "PT", name: "Portogallo" },
+  { code: "PW", name: "Palau" },
+  { code: "PY", name: "Paraguay" },
+  { code: "QA", name: "Qatar" },
+  { code: "RO", name: "Romania" },
+  { code: "RS", name: "Serbia" },
+  { code: "RU", name: "Russia" },
+  { code: "RW", name: "Ruanda" },
+  { code: "SA", name: "Arabia Saudita" },
+  { code: "SB", name: "Isole Salomone" },
+  { code: "SC", name: "Seychelles" },
+  { code: "SD", name: "Sudan" },
+  { code: "SE", name: "Svezia" },
+  { code: "SG", name: "Singapore" },
+  { code: "SI", name: "Slovenia" },
+  { code: "SK", name: "Slovacchia" },
+  { code: "SL", name: "Sierra Leone" },
+  { code: "SM", name: "San Marino" },
+  { code: "SN", name: "Senegal" },
+  { code: "SO", name: "Somalia" },
+  { code: "SR", name: "Suriname" },
+  { code: "SS", name: "Sud Sudan" },
+  { code: "ST", name: "São Tomé e Príncipe" },
+  { code: "SV", name: "El Salvador" },
+  { code: "SY", name: "Siria" },
+  { code: "SZ", name: "Eswatini" },
+  { code: "TD", name: "Ciad" },
+  { code: "TG", name: "Togo" },
+  { code: "TH", name: "Thailandia" },
+  { code: "TJ", name: "Tagikistan" },
+  { code: "TL", name: "Timor Est" },
+  { code: "TM", name: "Turkmenistan" },
+  { code: "TN", name: "Tunisia" },
+  { code: "TO", name: "Tonga" },
+  { code: "TR", name: "Turchia" },
+  { code: "TT", name: "Trinidad e Tobago" },
+  { code: "TV", name: "Tuvalu" },
+  { code: "TZ", name: "Tanzania" },
+  { code: "UA", name: "Ucraina" },
+  { code: "UG", name: "Uganda" },
+  { code: "US", name: "Stati Uniti" },
+  { code: "UY", name: "Uruguay" },
+  { code: "UZ", name: "Uzbekistan" },
+  { code: "VA", name: "Città del Vaticano" },
+  { code: "VC", name: "Saint Vincent e Grenadine" },
+  { code: "VE", name: "Venezuela" },
+  { code: "VN", name: "Vietnam" },
+  { code: "VU", name: "Vanuatu" },
+  { code: "WS", name: "Samoa" },
+  { code: "YE", name: "Yemen" },
+  { code: "ZA", name: "Sudafrica" },
+  { code: "ZM", name: "Zambia" },
+  { code: "ZW", name: "Zimbabwe" },
+].sort((first, second) =>
+  first.name.localeCompare(second.name, "it")
+);
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 type SavedProfile = {
@@ -51,6 +249,8 @@ type SavedProfile = {
   favoriteGenres: string[];
   avatarUrl: string | null;
   coverUrl: string | null;
+  countryCode: string;
+  isPublic: boolean;
 };
 
 type FriendProfile = {
@@ -74,6 +274,8 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [countryCode, setCountryCode] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
 
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>(
     []
@@ -206,7 +408,7 @@ export default function ProfilePage() {
         await supabase
           .from("profiles")
           .select(
-            "username, display_name, bio, favorite_genres, avatar_url, cover_url"
+            "username, display_name, bio, favorite_genres, avatar_url, cover_url, country_code, is_public"
           )
           .eq("id", currentUser.id)
           .single();
@@ -238,11 +440,15 @@ export default function ProfilePage() {
           profile?.favorite_genres ?? [],
         avatarUrl: profile?.avatar_url ?? null,
         coverUrl: profile?.cover_url ?? null,
+        countryCode: profile?.country_code ?? "",
+        isPublic: profile?.is_public ?? true,
       };
 
       setUsername(loadedProfile.username);
       setDisplayName(loadedProfile.displayName);
       setBio(loadedProfile.bio);
+      setCountryCode(loadedProfile.countryCode);
+      setIsPublic(loadedProfile.isPublic);
 
       setFavoriteGenres(
         loadedProfile.favoriteGenres
@@ -524,6 +730,8 @@ export default function ProfilePage() {
     setUsername(savedProfile.username);
     setDisplayName(savedProfile.displayName);
     setBio(savedProfile.bio);
+    setCountryCode(savedProfile.countryCode);
+    setIsPublic(savedProfile.isPublic);
 
     setFavoriteGenres(
       savedProfile.favoriteGenres
@@ -677,6 +885,8 @@ export default function ProfilePage() {
             favoriteGenres,
           avatar_url: finalAvatarUrl,
           cover_url: finalCoverUrl,
+          country_code: countryCode || null,
+          is_public: isPublic,
           updated_at:
             new Date().toISOString(),
         })
@@ -693,6 +903,8 @@ export default function ProfilePage() {
         favoriteGenres,
         avatarUrl: finalAvatarUrl,
         coverUrl: finalCoverUrl,
+        countryCode,
+        isPublic,
       };
 
       clearAvatarPreview();
@@ -825,6 +1037,24 @@ export default function ProfilePage() {
                   <p className="mt-2 text-lg text-zinc-400">
                     @{username}
                   </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {countryCode && (
+                      <span className="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1 text-xs font-bold text-zinc-300">
+                        🌍 {COUNTRIES.find((country) => country.code === countryCode)?.name ?? countryCode}
+                      </span>
+                    )}
+
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        isPublic
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : "bg-zinc-800 text-zinc-300"
+                      }`}
+                    >
+                      {isPublic ? "🌐 Profilo pubblico" : "🔒 Profilo privato"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -891,10 +1121,14 @@ export default function ProfilePage() {
     </div>
 
  <div className="flex items-center gap-3">
-  <div className="rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-4 py-2 text-sm font-bold text-[#C4B5FD]">
+  <Link
+    href="/account/friends"
+    className="rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-4 py-2 text-sm font-bold text-[#C4B5FD] transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/20"
+    title="Visualizza i miei amici"
+  >
     {friends.length}{" "}
     {friends.length === 1 ? "amico" : "amici"}
-  </div>
+  </Link>
 
   <Link
     href="/account/friends"
@@ -1056,6 +1290,105 @@ export default function ProfilePage() {
                   <p className="mt-2 text-right text-xs text-zinc-500">
                     {bio.length}/300
                   </p>
+                </div>
+              </div>
+            </section>
+
+            {/* NAZIONE E PRIVACY */}
+            <section className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
+                Profilo e privacy
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold">
+                Nazione e visibilità
+              </h2>
+
+              <p className="mt-3 max-w-2xl text-zinc-400">
+                La nazione servirà anche per classifiche e statistiche
+                geografiche. Puoi inoltre scegliere se rendere pubblico
+                o privato il tuo profilo ViewVault.
+              </p>
+
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-zinc-300">
+                    Nazione
+                  </label>
+
+                  <select
+                    value={countryCode}
+                    onChange={(event) => {
+                      setCountryCode(event.target.value);
+                      clearMessage();
+                    }}
+                    disabled={isSaving}
+                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-[#7C3AED]"
+                  >
+                    <option value="">
+                      Seleziona la nazione
+                    </option>
+
+                    {COUNTRIES.map((country) => (
+                      <option
+                        key={country.code}
+                        value={country.code}
+                      >
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <p className="mt-2 text-xs leading-5 text-zinc-500">
+                    Nel database viene salvato il codice paese a due lettere.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+                  <div className="flex items-start justify-between gap-5">
+                    <div>
+                      <p className="font-bold text-white">
+                        {isPublic
+                          ? "🌐 Profilo pubblico"
+                          : "🔒 Profilo privato"}
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-zinc-400">
+                        {isPublic
+                          ? "Gli altri utenti possono consultare il tuo profilo social ViewVault."
+                          : "Gli altri utenti vedranno solo le informazioni essenziali del profilo."}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isPublic}
+                      onClick={() => {
+                        setIsPublic((currentValue) => !currentValue);
+                        clearMessage();
+                      }}
+                      disabled={isSaving}
+                      className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                        isPublic
+                          ? "bg-[#7C3AED]"
+                          : "bg-zinc-700"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <span
+                        className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${
+                          isPublic
+                            ? "left-7"
+                            : "left-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-zinc-800 bg-black/20 p-4 text-xs leading-5 text-zinc-500">
+                    Email, dati di autenticazione e impostazioni account
+                    restano sempre privati.
+                  </div>
                 </div>
               </div>
             </section>

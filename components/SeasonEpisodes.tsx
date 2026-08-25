@@ -65,6 +65,7 @@ export default function SeasonEpisodes({
   const [savingEpisode, setSavingEpisode] = useState<string | null>(
     null
   );
+  const [savingBulk, setSavingBulk] = useState<string | null>(null);
 
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
@@ -242,6 +243,123 @@ export default function SeasonEpisodes({
     router.refresh();
   }
 
+  async function setEpisodesBulk(
+    episodes: Array<{
+      season_number: number;
+      episode_number: number;
+    }>,
+    watched: boolean,
+    operationKey: string,
+    successMessage: string
+  ) {
+    if (savingEpisode || savingBulk || episodes.length === 0) {
+      return;
+    }
+
+    setSavingBulk(operationKey);
+    setMessage("");
+    setHasError(false);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setMessage(
+        "Effettua il login per salvare gli episodi visti."
+      );
+      setHasError(true);
+      setSavingBulk(null);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "set_watched_episodes_bulk",
+      {
+        p_series_id: seriesId,
+        p_total_episodes: totalEpisodes,
+        p_episodes: episodes,
+        p_watched: watched,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Errore durante l'aggiornamento multiplo degli episodi:",
+        error
+      );
+      setMessage(
+        "Non è stato possibile aggiornare gli episodi."
+      );
+      setHasError(true);
+      setSavingBulk(null);
+      return;
+    }
+
+    const result = (
+      Array.isArray(data) ? data[0] : data
+    ) as
+      | {
+          watched_count: number;
+          total_count: number;
+          progress_status:
+            | "watchlist"
+            | "in_progress"
+            | "watched";
+        }
+      | null;
+
+    if (!result) {
+      setMessage(
+        "Il database non ha restituito il risultato dell'operazione."
+      );
+      setHasError(true);
+      setSavingBulk(null);
+      return;
+    }
+
+    setWatchedEpisodes((currentEpisodes) => {
+      const updatedEpisodes = new Set(currentEpisodes);
+
+      for (const episode of episodes) {
+        const episodeKey = createEpisodeKey(
+          episode.season_number,
+          episode.episode_number
+        );
+
+        if (watched) {
+          updatedEpisodes.add(episodeKey);
+        } else {
+          updatedEpisodes.delete(episodeKey);
+        }
+      }
+
+      return updatedEpisodes;
+    });
+
+    setMessage(successMessage);
+    setSavingBulk(null);
+    router.refresh();
+  }
+
+  function getSeasonEpisodePayload(
+    season: SeasonWithEpisodes
+  ) {
+    return season.episodes.map((episode) => ({
+      season_number: season.season_number,
+      episode_number: episode.episode_number,
+    }));
+  }
+
+  const allEpisodePayload = useMemo(
+    () =>
+      seasons.flatMap((season) =>
+        getSeasonEpisodePayload(season)
+      ),
+    [seasons]
+  );
+
   const watchedCount = watchedEpisodes.size;
 
   const progress =
@@ -304,6 +422,39 @@ export default function SeasonEpisodes({
               width: `${progress}%`,
             }}
           />
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setEpisodesBulk(
+                allEpisodePayload,
+                watchedCount < totalEpisodes,
+                "series",
+                watchedCount < totalEpisodes
+                  ? "Tutta la serie è stata segnata come vista."
+                  : "Tutta la serie è stata segnata come non vista."
+              )
+            }
+            disabled={
+              isLoading ||
+              Boolean(savingEpisode) ||
+              Boolean(savingBulk) ||
+              totalEpisodes === 0
+            }
+            className={`rounded-full px-5 py-3 text-sm font-bold transition ${
+              watchedCount >= totalEpisodes && totalEpisodes > 0
+                ? "border border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-red-500 hover:text-red-300"
+                : "bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
+            } disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {savingBulk === "series"
+              ? "Salvataggio..."
+              : watchedCount >= totalEpisodes && totalEpisodes > 0
+                ? "↩ Segna tutta la serie come non vista"
+                : "✓ Segna tutta la serie come vista"}
+          </button>
         </div>
       </div>
 
@@ -405,6 +556,40 @@ export default function SeasonEpisodes({
 
               {isOpen && (
                 <div className="border-t border-zinc-800 p-5 md:p-6">
+                  <div className="mb-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEpisodesBulk(
+                          getSeasonEpisodePayload(season),
+                          !seasonCompleted,
+                          `season-${season.season_number}`,
+                          seasonCompleted
+                            ? `${season.name} è stata segnata come non vista.`
+                            : `${season.name} è stata segnata come vista.`
+                        )
+                      }
+                      disabled={
+                        isLoading ||
+                        Boolean(savingEpisode) ||
+                        Boolean(savingBulk) ||
+                        season.episodes.length === 0
+                      }
+                      className={`rounded-full px-5 py-3 text-sm font-bold transition ${
+                        seasonCompleted
+                          ? "border border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-red-500 hover:text-red-300"
+                          : "bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      {savingBulk ===
+                      `season-${season.season_number}`
+                        ? "Salvataggio..."
+                        : seasonCompleted
+                          ? "↩ Segna stagione come non vista"
+                          : "✓ Segna stagione come vista"}
+                    </button>
+                  </div>
+
                   <div className="space-y-4">
                     {season.episodes.map((episode) => {
                       const episodeKey = createEpisodeKey(
@@ -473,7 +658,8 @@ export default function SeasonEpisodes({
                             }
                             disabled={
                               isLoading ||
-                              Boolean(savingEpisode)
+                              Boolean(savingEpisode) ||
+                              Boolean(savingBulk)
                             }
                             className={`rounded-full px-5 py-3 text-sm font-bold transition ${
                               isWatched

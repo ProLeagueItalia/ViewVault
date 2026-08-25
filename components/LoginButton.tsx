@@ -30,7 +30,8 @@ export default function LoginButton() {
     useState<AuthMode>("login");
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const [password, setPassword] = useState("");
+const [showPassword, setShowPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -105,13 +106,14 @@ setUsername(profile?.username ?? null);
   }
 
   function resetForm() {
-    setAuthMode("login");
-    setEmail("");
-    setPassword("");
-    setMessage("");
-    setHasError(false);
-    setIsLoading(false);
-  }
+  setAuthMode("login");
+  setEmail("");
+  setPassword("");
+  setShowPassword(false);
+  setMessage("");
+  setHasError(false);
+  setIsLoading(false);
+}
 
   function openModal() {
     resetForm();
@@ -455,25 +457,82 @@ setUsername(profile?.username ?? null);
                   Password
                 </label>
 
-                <input
-                  id="auth-password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    clearMessages();
-                  }}
-                  placeholder="Password"
-                  autoComplete={
-                    authMode === "login"
-                      ? "current-password"
-                      : "new-password"
-                  }
-                  minLength={6}
-                  required
-                  disabled={isLoading}
-                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10 disabled:opacity-60"
-                />
+                <div className="relative">
+                  <input
+                    id="auth-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      clearMessages();
+                    }}
+                    placeholder="Password"
+                    autoComplete={
+                      authMode === "login"
+                        ? "current-password"
+                        : "new-password"
+                    }
+                    minLength={6}
+                    required
+                    disabled={isLoading}
+                    className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 pr-12 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10 disabled:opacity-60"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword((current) => !current)
+                    }
+                    disabled={isLoading}
+                    aria-label={
+                      showPassword
+                        ? "Nascondi password"
+                        : "Mostra password"
+                    }
+                    title={
+                      showPassword
+                        ? "Nascondi password"
+                        : "Mostra password"
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-[#A78BFA] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showPassword ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c5 0 9 4 10 8a10.7 10.7 0 0 1-2.2 4.2" />
+                        <path d="M6.6 6.6C4.4 8 2.8 9.9 2 12c1 4 5 8 10 8 1.6 0 3-.4 4.3-1" />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
 
                 {authMode === "register" && (
                   <p className="px-1 text-xs leading-5 text-zinc-500">

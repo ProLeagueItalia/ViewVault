@@ -190,24 +190,28 @@ export default async function DashboardPage() {
       value: String(filmsWatched),
       icon: "🎬",
       description: "Film completati",
+      href: "/vault?filter=watched&type=movie",
     },
     {
       label: "Preferiti",
       value: String(favoritesCount),
       icon: "❤️",
       description: "Film e serie del cuore",
+      href: "/vault?filter=favorites",
     },
     {
       label: "Serie completate",
       value: String(completedSeries),
       icon: "✅",
       description: "Tutti gli episodi visti",
+      href: "/vault?filter=watched&type=tv",
     },
     {
       label: "Serie in corso",
       value: String(seriesInProgress),
       icon: "🕒",
       description: "Serie già iniziate",
+      href: "/vault?filter=in_progress",
     },
     {
       label: "Episodi visti",
@@ -401,34 +405,58 @@ export default async function DashboardPage() {
         </section>
 
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {stats.map((stat) => (
-            <article
-              key={stat.label}
-              className="rounded-3xl border border-zinc-800 bg-[#151515] p-6 shadow-lg transition hover:-translate-y-1 hover:border-[#7C3AED]"
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <span className="text-3xl">
-                  {stat.icon}
-                </span>
+          {stats.map((stat) => {
+            const cardClassName =
+              "block rounded-3xl border border-zinc-800 bg-[#151515] p-6 shadow-lg transition hover:-translate-y-1 hover:border-[#7C3AED]";
 
-                <span className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
-                  Personale
-                </span>
-              </div>
+            const content = (
+              <>
+                <div className="mb-6 flex items-center justify-between">
+                  <span className="text-3xl">
+                    {stat.icon}
+                  </span>
 
-              <p className="text-4xl font-bold">
-                {stat.value}
-              </p>
+                  <span className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
+                    Personale
+                  </span>
+                </div>
 
-              <p className="mt-2 font-semibold text-zinc-300">
-                {stat.label}
-              </p>
+                <p className="text-4xl font-bold">
+                  {stat.value}
+                </p>
 
-              <p className="mt-1 text-sm text-zinc-500">
-                {stat.description}
-              </p>
-            </article>
-          ))}
+                <p className="mt-2 font-semibold text-zinc-300">
+                  {stat.label}
+                </p>
+
+                <p className="mt-1 text-sm text-zinc-500">
+                  {stat.description}
+                </p>
+              </>
+            );
+
+            if (stat.href) {
+              return (
+                <Link
+                  key={stat.label}
+                  href={stat.href}
+                  className={cardClassName}
+                  aria-label={`Apri ${stat.label}`}
+                >
+                  {content}
+                </Link>
+              );
+            }
+
+            return (
+              <article
+                key={stat.label}
+                className={cardClassName}
+              >
+                {content}
+              </article>
+            );
+          })}
         </section>
 
         <section className="mt-10 grid gap-6 lg:grid-cols-3">
@@ -547,14 +575,14 @@ export default async function DashboardPage() {
               </Link>
 
               <Link
-                href="/vault"
+                href="/vault?filter=favorites"
                 className="block w-full rounded-2xl bg-zinc-900 px-5 py-4 text-left font-bold transition hover:bg-zinc-800"
               >
                 ❤️ Preferiti ({favoritesCount})
               </Link>
 
               <Link
-                href="/vault"
+                href="/vault?filter=watchlist"
                 className="block w-full rounded-2xl bg-zinc-900 px-5 py-4 text-left font-bold transition hover:bg-zinc-800"
               >
                 📌 Da vedere

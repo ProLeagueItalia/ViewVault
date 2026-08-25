@@ -84,6 +84,45 @@ type FriendshipStatus =
   | "accepted"
   | "rejected";
 
+type FriendProfile = {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+};
+
+function getCountryFlag(countryCode: string | null) {
+  if (!countryCode || !/^[A-Z]{2}$/.test(countryCode)) {
+    return "";
+  }
+
+  return countryCode
+    .split("")
+    .map((character) =>
+      String.fromCodePoint(
+        127397 + character.charCodeAt(0)
+      )
+    )
+    .join("");
+}
+
+function getCountryName(countryCode: string | null) {
+  if (!countryCode) {
+    return "";
+  }
+
+  try {
+    const displayNames = new Intl.DisplayNames(["it"], {
+      type: "region",
+    });
+
+    return displayNames.of(countryCode) ?? countryCode;
+  } catch {
+    return countryCode;
+  }
+}
+
 function getActivityLabel(
   displayName: string,
   activity: ActivityContent
@@ -210,7 +249,8 @@ export default async function UserProfilePage({
         avatar_url,
         cover_url,
         favorite_genres,
-        profile_visibility
+        country_code,
+        is_public
       `
     )
     .eq("username", username)
@@ -234,6 +274,17 @@ export default async function UserProfilePage({
     displayName
       .charAt(0)
       .toUpperCase();
+
+  const countryCode =
+    typeof profile.country_code === "string"
+      ? profile.country_code.toUpperCase()
+      : null;
+
+  const countryFlag =
+    getCountryFlag(countryCode);
+
+  const countryName =
+    getCountryName(countryCode);
 
   /*
    * RELAZIONE DI AMICIZIA
@@ -317,13 +368,9 @@ export default async function UserProfilePage({
     }
   }
 
-  const isFriend =
-  friendshipStatus === "accepted";
-
-const isPrivate =
-  profile.profile_visibility === "private" &&
-  !isOwnProfile &&
-  !isFriend;
+  const isPrivate =
+  profile.is_public === false &&
+  !isOwnProfile;
 
   if (isPrivate) {
     return (
@@ -343,82 +390,161 @@ const isPrivate =
               <div className="h-44 bg-gradient-to-r from-[#7C3AED]/40 via-[#18181B] to-[#2563EB]/30 md:h-56" />
             )}
 
-            <div className="px-6 pb-10 md:px-10">
-              <div className="-mt-14 flex flex-col gap-5 md:-mt-16 md:flex-row md:items-end">
-                {profile.avatar_url ? (
-                  <div
-                    className="h-28 w-28 shrink-0 rounded-full border-4 border-[#18181B] bg-cover bg-center shadow-2xl md:h-32 md:w-32"
-                    style={{
-                      backgroundImage: `url("${profile.avatar_url}")`,
-                    }}
-                  />
-                ) : (
-                  <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-[#18181B] bg-[#7C3AED] text-4xl font-bold text-white shadow-2xl md:h-32 md:w-32">
-                    {profileInitial}
+            <div className="px-6 pb-8 md:px-10">
+              <div className="-mt-14 flex flex-col gap-6 md:-mt-16 md:flex-row md:items-end md:justify-between">
+                <div className="flex flex-col gap-5 md:flex-row md:items-end">
+                  {profile.avatar_url ? (
+                    <div
+                      className="h-28 w-28 shrink-0 rounded-full border-4 border-[#18181B] bg-cover bg-center shadow-2xl md:h-32 md:w-32"
+                      style={{
+                        backgroundImage: `url("${profile.avatar_url}")`,
+                      }}
+                      aria-label={`Avatar di ${displayName}`}
+                    />
+                  ) : (
+                    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-[#18181B] bg-[#7C3AED] text-4xl font-bold text-white shadow-2xl md:h-32 md:w-32">
+                      {profileInitial}
+                    </div>
+                  )}
+
+                  <div className="pb-2">
+                    <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#A78BFA]">
+                      Profilo ViewVault
+                    </p>
+
+                    <h1 className="mt-2 text-4xl font-bold md:text-5xl">
+                      {displayName}
+                    </h1>
+
+                    <p className="mt-2 text-lg text-zinc-400">
+                      @{profile.username}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {countryCode && (
+                        <span className="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1 text-xs font-bold text-zinc-300">
+                          {countryFlag} {countryName}
+                        </span>
+                      )}
+
+                      <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-bold text-zinc-300">
+                        🔒 Profilo privato
+                      </span>
+                    </div>
                   </div>
-                )}
-
-                <div className="pb-2">
-                  <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#A78BFA]">
-                    Profilo ViewVault
-                  </p>
-
-                  <h1 className="mt-2 text-4xl font-bold md:text-5xl">
-                    {displayName}
-                  </h1>
-
-                  <p className="mt-2 text-lg text-zinc-400">
-                    @{profile.username}
-                  </p>
                 </div>
-              </div>
 
-              {user &&
-                !isOwnProfile && (
-                  <div className="mt-8">
+                {user && !isOwnProfile && (
+                  <div className="mb-2">
                     <FriendshipButton
-                      currentUserId={
-                        user.id
-                      }
-                      profileUserId={
-                        profile.id
-                      }
-                      initialFriendshipId={
-                        friendshipId
-                      }
-                      initialStatus={
-                        friendshipStatus
-                      }
-                      initialRequesterId={
-                        friendshipRequesterId
-                      }
-                      initialReceiverId={
-                        friendshipReceiverId
-                      }
+                      currentUserId={user.id}
+                      profileUserId={profile.id}
+                      initialFriendshipId={friendshipId}
+                      initialStatus={friendshipStatus}
+                      initialRequesterId={friendshipRequesterId}
+                      initialReceiverId={friendshipReceiverId}
                     />
                   </div>
                 )}
-
-              <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-900/50 p-8 text-center">
-                <div className="text-4xl">
-                  🔒
-                </div>
-
-                <h2 className="mt-4 text-2xl font-bold">
-                  Profilo privato
-                </h2>
-
-                <p className="mx-auto mt-3 max-w-xl leading-7 text-zinc-400">
-                  Questo utente ha scelto di mantenere
-                  privati il proprio Vault, le statistiche
-                  e le attività.
-                </p>
               </div>
+
+              {profile.bio && (
+                <p className="mt-8 max-w-3xl text-lg leading-8 text-zinc-300">
+                  {profile.bio}
+                </p>
+              )}
+
+              {profile.favorite_genres &&
+                profile.favorite_genres.length > 0 && (
+                  <div className="mt-8">
+                    <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-zinc-500">
+                      Generi preferiti
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {profile.favorite_genres.map(
+                        (genre: string) => (
+                          <span
+                            key={genre}
+                            className="rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 px-4 py-2 text-sm font-semibold text-[#C4B5FD]"
+                          >
+                            {genre}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
+
+          <section className="mt-8 rounded-3xl border border-zinc-800 bg-[#18181B] p-8 text-center">
+            <div className="text-4xl">🔒</div>
+
+            <h2 className="mt-4 text-2xl font-bold">
+              Profilo privato
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-xl leading-7 text-zinc-400">
+              Vault, statistiche, attività, recensioni e lista amici
+              sono visibili solo al proprietario del profilo.
+            </p>
+          </section>
         </section>
       </main>
     );
+  }
+
+  const {
+    data: friendshipRows,
+    error: friendshipRowsError,
+  } = await supabase
+    .from("friendships")
+    .select("requester_id, receiver_id")
+    .eq("status", "accepted")
+    .or(
+      `requester_id.eq.${profile.id},receiver_id.eq.${profile.id}`
+    );
+
+  if (friendshipRowsError) {
+    console.error(
+      "Errore nel recupero degli amici del profilo:",
+      friendshipRowsError
+    );
+  }
+
+  const friendIds =
+    friendshipRows?.map((friendship) =>
+      friendship.requester_id === profile.id
+        ? friendship.receiver_id
+        : friendship.requester_id
+    ) ?? [];
+
+  let friends: FriendProfile[] = [];
+
+  if (friendIds.length > 0) {
+    const {
+      data: friendProfiles,
+      error: friendProfilesError,
+    } = await supabase
+      .from("profiles")
+      .select(
+        "id, username, display_name, avatar_url, bio"
+      )
+      .in("id", friendIds)
+      .order("display_name", {
+        ascending: true,
+      });
+
+    if (friendProfilesError) {
+      console.error(
+        "Errore nel recupero dei profili amici:",
+        friendProfilesError
+      );
+    } else {
+      friends =
+        (friendProfiles as FriendProfile[] | null) ?? [];
+    }
   }
 
   const [
@@ -733,6 +859,26 @@ const isPrivate =
                   <p className="mt-2 text-lg text-zinc-400">
                     @{profile.username}
                   </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {countryCode && (
+                      <span className="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1 text-xs font-bold text-zinc-300">
+                        {countryFlag} {countryName}
+                      </span>
+                    )}
+
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        profile.is_public === false
+                          ? "bg-zinc-800 text-zinc-300"
+                          : "bg-emerald-500/15 text-emerald-300"
+                      }`}
+                    >
+                      {profile.is_public === false
+                        ? "🔒 Profilo privato"
+                        : "🌐 Profilo pubblico"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1054,23 +1200,109 @@ const isPrivate =
         </section>
 
         {/* COMMUNITY */}
-        <section className="mt-8 rounded-3xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 p-6 md:p-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-            Community
-          </p>
+        <section className="mt-8 rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
+                Community
+              </p>
 
-          <h2 className="mt-2 text-2xl font-bold">
-            Amici nel Vault
-          </h2>
+              <h2 className="mt-2 text-2xl font-bold">
+                Amici nel Vault
+              </h2>
 
-          <p className="mt-3 max-w-2xl leading-7 text-zinc-300">
-            Connettiti con altri
-            utenti ViewVault,
-            condividi ciò che
-            guardi e scopri nuovi
-            titoli attraverso i
-            tuoi amici.
-          </p>
+              <p className="mt-2 text-zinc-400">
+                Le persone con cui {isOwnProfile ? "sei connesso" : `${displayName} è connesso`} su ViewVault.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-4 py-2 text-sm font-bold text-[#C4B5FD]">
+                {friends.length}{" "}
+                {friends.length === 1 ? "amico" : "amici"}
+              </div>
+
+              {isOwnProfile && (
+                <Link
+                  href="/account/friends"
+                  className="rounded-full border border-zinc-700 px-4 py-2 text-sm font-bold text-zinc-300 transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/10 hover:text-[#C4B5FD]"
+                >
+                  Gestisci amici
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {friends.length > 0 ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {friends.map((friend) => {
+                const friendDisplayName =
+                  friend.display_name?.trim() ||
+                  friend.username;
+
+                const friendInitial =
+                  friendDisplayName
+                    .charAt(0)
+                    .toUpperCase();
+
+                return (
+                  <Link
+                    key={friend.id}
+                    href={`/u/${friend.username}`}
+                    className="group rounded-3xl border border-zinc-800 bg-zinc-900/40 p-5 transition hover:border-[#7C3AED]/60"
+                  >
+                    <div className="flex items-center gap-4">
+                      {friend.avatar_url ? (
+                        <div
+                          className="h-14 w-14 shrink-0 rounded-full border-2 border-zinc-700 bg-cover bg-center transition group-hover:border-[#7C3AED]"
+                          style={{
+                            backgroundImage: `url("${friend.avatar_url}")`,
+                          }}
+                          aria-label={`Avatar di ${friendDisplayName}`}
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#7C3AED] text-lg font-bold text-white">
+                          {friendInitial}
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold text-white transition group-hover:text-[#C4B5FD]">
+                          {friendDisplayName}
+                        </p>
+
+                        <p className="mt-1 truncate text-sm text-zinc-500">
+                          @{friend.username}
+                        </p>
+
+                        {friend.bio && (
+                          <p className="mt-2 line-clamp-1 text-sm text-zinc-400">
+                            {friend.bio}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="text-xl text-zinc-600 transition group-hover:translate-x-1 group-hover:text-[#A78BFA]">
+                        →
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900/30 px-6 py-10 text-center">
+              <div className="text-4xl">👥</div>
+
+              <p className="mt-4 font-bold text-white">
+                Nessun amico ancora
+              </p>
+
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
+                Quando verranno aggiunti amici, compariranno qui.
+              </p>
+            </div>
+          )}
         </section>
       </section>
     </main>

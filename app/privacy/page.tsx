@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           </p>
 
           <p className="mt-3 text-sm text-zinc-500">
-            Ultimo aggiornamento: 11 agosto 2026
+            Ultimo aggiornamento: 26 agosto 2026
           </p>
         </div>
 
@@ -80,6 +80,31 @@ export default function PrivacyPage() {
               </li>
 
               <li>
+                dati del profilo scelti o forniti
+                dall&apos;utente, come username, nome
+                visualizzato, bio, nazione, generi preferiti,
+                avatar e immagine di copertina;
+              </li>
+
+              <li>
+                impostazioni di visibilità del profilo, ad
+                esempio profilo pubblico o privato;
+              </li>
+
+              <li>
+                informazioni relative alle relazioni sociali
+                all&apos;interno di ViewVault, come richieste di
+                amicizia e amicizie accettate;
+              </li>
+
+              <li>
+                attività generate dall&apos;utilizzo delle
+                funzionalità social e del Vault, ad esempio
+                contenuti visti, aggiunte alla watchlist,
+                preferiti, voti e recensioni;
+              </li>
+
+              <li>
                 film e serie TV aggiunti al Vault personale;
               </li>
 
@@ -130,6 +155,27 @@ export default function PrivacyPage() {
               <li>
                 autenticare l&apos;utente e mantenere attiva
                 la sessione;
+              </li>
+
+              <li>
+                creare e gestire il profilo personale
+                dell&apos;utente;
+              </li>
+
+              <li>
+                consentire all&apos;utente di scegliere la
+                visibilità pubblica o privata del proprio profilo;
+              </li>
+
+              <li>
+                gestire richieste di amicizia, amicizie e altre
+                funzionalità social disponibili sulla piattaforma;
+              </li>
+
+              <li>
+                mostrare agli altri utenti le informazioni e le
+                attività rese visibili secondo le impostazioni di
+                privacy del profilo;
               </li>
 
               <li>
@@ -184,6 +230,14 @@ export default function PrivacyPage() {
               servizio, nel rispetto della normativa
               applicabile.
             </p>
+
+            <p className="mt-4">
+              Le informazioni del profilo e le attività che
+              l&apos;utente sceglie di rendere visibili agli altri
+              membri vengono trattate per offrire le funzionalità
+              social richieste e nel rispetto delle impostazioni
+              di privacy selezionate dall&apos;utente.
+            </p>
           </section>
 
           <section>
@@ -225,8 +279,11 @@ export default function PrivacyPage() {
 
                 <p className="mt-2">
                   Utilizzato per autenticazione, gestione
-                  delle sessioni e archiviazione dei dati
-                  associati al Vault personale.
+                  delle sessioni, database e archiviazione
+                  dei dati associati agli account, ai profili,
+                  al Vault, alle amicizie, alle attività e ai
+                  contenuti caricati dall&apos;utente, come avatar
+                  e immagini di copertina.
                 </p>
               </div>
 
@@ -282,29 +339,69 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-white">
-              7. Conservazione dei dati
+              7. Profili, privacy e funzionalità social
             </h2>
 
             <p className="mt-4">
-              I dati associati all&apos;account vengono
-              conservati per il periodo necessario a fornire
-              le funzionalità di ViewVault e, in generale,
-              finché l&apos;account rimane attivo, salvo
-              eventuali obblighi di conservazione previsti
+              ViewVault consente agli utenti di creare un profilo
+              personale e di scegliere se renderlo pubblico o
+              privato.
+            </p>
+
+            <p className="mt-4">
+              Quando il profilo è pubblico, le informazioni social
+              rese disponibili dalla piattaforma possono essere
+              consultate dagli altri utenti, inclusi, a seconda
+              delle funzionalità disponibili, dati del profilo,
+              statistiche, attività, recensioni e lista amici.
+            </p>
+
+            <p className="mt-4">
+              Quando il profilo è privato, ViewVault limita la
+              visibilità dei contenuti personali secondo le
+              impostazioni applicate dalla piattaforma. Restano
+              comunque visibili le informazioni essenziali
+              necessarie a identificare il profilo e gestire le
+              interazioni sociali previste.
+            </p>
+
+            <p className="mt-4">
+              L&apos;utente può modificare in qualsiasi momento le
+              informazioni del profilo e la relativa impostazione
+              di visibilità dalle funzioni disponibili nel proprio
+              account.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-white">
+              8. Conservazione dei dati
+            </h2>
+
+            <p className="mt-4">
+              I dati associati all&apos;account, compresi i dati
+              del profilo, il Vault, i progressi, le amicizie,
+              le attività e gli eventuali contenuti caricati
+              dall&apos;utente, vengono conservati per il periodo
+              necessario a fornire le funzionalità di ViewVault
+              e, in generale, finché l&apos;account rimane attivo,
+              salvo eventuali obblighi di conservazione previsti
               dalla legge.
             </p>
 
             <p className="mt-4">
               L&apos;utente può richiedere la cancellazione
               dei propri dati e dell&apos;account contattando
-              il Titolare all&apos;indirizzo indicato nella
-              presente informativa.
+              il Titolare all&apos;indirizzo
+              info@viewvault.it, salvo l&apos;eventuale
+              introduzione di strumenti di cancellazione
+              direttamente disponibili nell&apos;account.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-white">
-              8. Cookie e sessione
+              9. Cookie e sessione
             </h2>
 
             <p className="mt-4">
@@ -323,7 +420,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-white">
-              9. Diritti dell&apos;utente
+              10. Diritti dell&apos;utente
             </h2>
 
             <p className="mt-4">
@@ -361,7 +458,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-white">
-              10. Sicurezza
+              11. Sicurezza
             </h2>
 
             <p className="mt-4">
@@ -374,7 +471,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-white">
-              11. Modifiche alla Privacy Policy
+              12. Modifiche alla Privacy Policy
             </h2>
 
             <p className="mt-4">
@@ -393,7 +490,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-white">
-              12. Contatti
+              13. Contatti
             </h2>
 
             <p className="mt-4">
