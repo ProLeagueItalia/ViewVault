@@ -4,9 +4,11 @@ import SeasonEpisodes, {
   type SeasonWithEpisodes,
 } from "../../../components/SeasonEpisodes";
 import SeriesReview from "../../../components/SeriesReview";
+import MediaComments from "../../../components/MediaComments";
 import SeriesVaultActions, {
   type SeriesVaultStatus,
 } from "../../../components/SeriesVaultActions";
+import WatchProviders from "../../../components/WatchProviders";
 
 import { createClient } from "../../../lib/supabase/server";
 
@@ -15,6 +17,7 @@ import {
   getSeriesCredits,
   getSeriesSeason,
   getSeriesVideos,
+  getSeriesWatchProviders,
 } from "../../../lib/tmdb";
 
 type PageProps = {
@@ -115,16 +118,21 @@ export default async function SeriesPage({
 }: PageProps) {
   const { id } = await params;
 
-  const [seriesData, creditsData, videosData] =
-    await Promise.all([
-      getSeries(id),
-      getSeriesCredits(id),
-      getSeriesVideos(id),
-    ]);
+  const [
+  seriesData,
+  creditsData,
+  videosData,
+  watchProviders,
+] = await Promise.all([
+  getSeries(id),
+  getSeriesCredits(id),
+  getSeriesVideos(id),
+  getSeriesWatchProviders(id),
+]);
 
-  const series = seriesData as SeriesDetails;
-  const credits = creditsData as CreditsResponse;
-  const videos = videosData as VideosResponse;
+const series = seriesData as SeriesDetails;
+const credits = creditsData as CreditsResponse;
+const videos = videosData as VideosResponse;
 
   const cast = credits.cast?.slice(0, 8) ?? [];
 
@@ -412,6 +420,12 @@ const seriesVaultStatus: SeriesVaultStatus =
             </div>
           </div>
 
+          <WatchProviders
+            providers={watchProviders}
+            title={series.name}
+            countryLabel="Italia"
+          />
+
           {/* STAGIONI ED EPISODI */}
           {seasonsWithEpisodes.length > 0 ? (
             <SeasonEpisodes
@@ -442,6 +456,11 @@ const seriesVaultStatus: SeriesVaultStatus =
               initialReview={userReview}
             />
           )}
+
+          <MediaComments
+            tmdbId={series.id}
+            mediaType="tv"
+          />
 
           {/* TRAILER */}
           {trailer && (

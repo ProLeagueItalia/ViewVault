@@ -4,6 +4,8 @@ import MovieVaultActions, {
   type MovieVaultStatus,
 } from "../../../components/MovieVaultActions";
 import MovieReview from "../../../components/MovieReview";
+import MediaComments from "../../../components/MediaComments";
+import WatchProviders from "../../../components/WatchProviders";
 
 import { createClient } from "../../../lib/supabase/server";
 
@@ -11,6 +13,7 @@ import {
   getMovie,
   getMovieCredits,
   getMovieVideos,
+  getMovieWatchProviders,
 } from "../../../lib/tmdb";
 
 type PageProps = {
@@ -75,12 +78,17 @@ export default async function MoviePage({
 }: PageProps) {
   const { id } = await params;
 
-  const [movieData, creditsData, videosData] =
-    await Promise.all([
-      getMovie(id),
-      getMovieCredits(id),
-      getMovieVideos(id),
-    ]);
+  const [
+  movieData,
+  creditsData,
+  videosData,
+  watchProviders,
+] = await Promise.all([
+  getMovie(id),
+  getMovieCredits(id),
+  getMovieVideos(id),
+  getMovieWatchProviders(id),
+]);
 
   const movie = movieData as MovieDetails;
   const credits = creditsData as CreditsResponse;
@@ -329,6 +337,12 @@ export default async function MoviePage({
             </div>
           </div>
 
+          <WatchProviders
+  providers={watchProviders}
+  title={movie.title}
+  countryLabel="Italia"
+/>
+
           {vaultStatus === "watched" && (
             <MovieReview
               movieId={movie.id}
@@ -336,6 +350,11 @@ export default async function MoviePage({
               initialReview={userReview}
             />
           )}
+
+          <MediaComments
+            tmdbId={movie.id}
+            mediaType="movie"
+          />
 
           {trailer && (
             <section className="mt-16">

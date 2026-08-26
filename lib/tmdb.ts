@@ -5,7 +5,7 @@ const IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 export type MediaType = "movie" | "tv";
 
 export type TMDBMovie = {
-  id: number;
+  id: number; 
   title: string;
   release_date: string;
   vote_average: number;
@@ -1229,4 +1229,197 @@ export function getPosterUrl(
   }
 
   return `${IMAGE_BASE}${path}`;
+}
+
+/*
+ * TRENDING GLOBALE
+ *
+ * Recupera i contenuti più popolari del momento
+ * su TMDB mescolando Film e Serie TV.
+ */
+
+export type TMDBTrendingItem = {
+  id: number;
+  media_type: "movie" | "tv";
+  title: string;
+  date: string;
+  vote_average: number;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  overview: string;
+  popularity: number;
+};
+
+type TMDBTrendingResponse = {
+  page: number;
+  results: Array<
+    | (TMDBMovie & {
+        media_type: "movie";
+        popularity?: number;
+      })
+    | (TMDBSeries & {
+        media_type: "tv";
+        popularity?: number;
+      })
+    | {
+        id: number;
+        media_type: "person";
+      }
+  >;
+};
+
+export async function getTrendingAll(): Promise<
+  TMDBTrendingItem[]
+> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+    language: "it-IT",
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/trending/all/day?${params.toString()}`,
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero dei contenuti più visti del momento."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBTrendingResponse;
+
+  return data.results
+    .filter(
+      (
+        item
+      ): item is
+        | (TMDBMovie & {
+            media_type: "movie";
+            popularity?: number;
+          })
+        | (TMDBSeries & {
+            media_type: "tv";
+            popularity?: number;
+          }) =>
+        item.media_type === "movie" ||
+        item.media_type === "tv"
+    )
+    .map((item): TMDBTrendingItem => {
+      if (item.media_type === "movie") {
+        return {
+          id: item.id,
+          media_type: "movie",
+          title: item.title,
+          date: item.release_date ?? "",
+          vote_average: item.vote_average ?? 0,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          overview: item.overview ?? "",
+          popularity: item.popularity ?? 0,
+        };
+      }
+
+      return {
+        id: item.id,
+        media_type: "tv",
+        title: item.name,
+        date: item.first_air_date ?? "",
+        vote_average: item.vote_average ?? 0,
+        poster_path: item.poster_path,
+        backdrop_path: item.backdrop_path,
+        overview: item.overview ?? "",
+        popularity: item.popularity ?? 0,
+      };
+    });
+}
+export type TMDBWatchProvider = {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+  display_priority: number;
+};
+
+export type TMDBWatchProvidersCountry = {
+  link?: string;
+  flatrate?: TMDBWatchProvider[];
+  rent?: TMDBWatchProvider[];
+  buy?: TMDBWatchProvider[];
+};
+
+type TMDBWatchProvidersResponse = {
+  id: number;
+  results: Record<
+    string,
+    TMDBWatchProvidersCountry
+  >;
+};
+
+export async function getMovieWatchProviders(
+  id: string,
+  countryCode = "IT"
+): Promise<TMDBWatchProvidersCountry | null> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/movie/${id}/watch/providers?${params.toString()}`,
+    {
+      next: {
+        revalidate: 21600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero dei provider del film."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBWatchProvidersResponse;
+
+  return data.results?.[countryCode] ?? null;
+}
+
+export async function getSeriesWatchProviders(
+  id: string,
+  countryCode = "IT"
+): Promise<TMDBWatchProvidersCountry | null> {
+  checkApiKey();
+
+  const params = new URLSearchParams({
+    api_key: API_KEY as string,
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/tv/${id}/watch/providers?${params.toString()}`,
+    {
+      next: {
+        revalidate: 21600,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      "Errore nel recupero dei provider della serie TV."
+    );
+  }
+
+  const data =
+    (await res.json()) as TMDBWatchProvidersResponse;
+
+  return data.results?.[countryCode] ?? null;
 }

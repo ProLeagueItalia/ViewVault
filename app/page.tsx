@@ -1,6 +1,8 @@
 import Image from "next/image";
+
 import Navbar from "../components/Navbar";
 import StatsCards from "../components/StatsCards";
+import MostWatchedNow from "../components/MostWatchedNow";
 import NewMovies from "../components/NewMovies";
 import NewSeries from "../components/NewSeries";
 
@@ -36,7 +38,6 @@ export default function Home() {
         </div>
 
         {/* Barra di ricerca */}
-
         <form
           action="/ricerca"
           method="GET"
@@ -60,6 +61,8 @@ export default function Home() {
       </section>
 
       <StatsCards />
+
+      <MostWatchedNow />
 
       <NewMovies />
 

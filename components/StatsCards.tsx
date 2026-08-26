@@ -83,23 +83,38 @@ export default async function StatsCards() {
     ]);
 
     if (vaultResponse.error) {
-      console.error(
+      console.warn(
         "Errore nel recupero del Vault:",
-        vaultResponse.error
+        {
+          message: vaultResponse.error.message,
+          details: vaultResponse.error.details,
+          hint: vaultResponse.error.hint,
+          code: vaultResponse.error.code,
+        }
       );
     }
 
     if (progressResponse.error) {
-      console.error(
+      console.warn(
         "Errore nel recupero dei progressi delle serie:",
-        progressResponse.error
+        {
+          message: progressResponse.error.message,
+          details: progressResponse.error.details,
+          hint: progressResponse.error.hint,
+          code: progressResponse.error.code,
+        }
       );
     }
 
     if (episodesResponse.error) {
-      console.error(
+      console.warn(
         "Errore nel recupero degli episodi visti:",
-        episodesResponse.error
+        {
+          message: episodesResponse.error.message,
+          details: episodesResponse.error.details,
+          hint: episodesResponse.error.hint,
+          code: episodesResponse.error.code,
+        }
       );
     }
 
