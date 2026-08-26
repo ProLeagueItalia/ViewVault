@@ -30,6 +30,7 @@ export type VaultMediaItem = {
   totalEpisodes: number;
   isFavorite: boolean;
   createdAt: string | null;
+  watchCount: number;
 };
 
 type FilterType =
@@ -549,6 +550,19 @@ export default function VaultLibrary({
               onRemoved={() =>
                 removeItem(item.vaultId)
               }
+              onWatchCountChange={(newWatchCount) =>
+                setLibraryItems((currentItems) =>
+                  currentItems.map((currentItem) =>
+                    currentItem.vaultId === item.vaultId
+                      ? {
+                          ...currentItem,
+                          watchCount: newWatchCount,
+                          vaultStatus: "watched",
+                        }
+                      : currentItem
+                  )
+                )
+              }
             />
           ))}
         </section>
@@ -583,6 +597,7 @@ function VaultCard({
   onFavoriteToggle,
   onStatusChange,
   onRemoved,
+  onWatchCountChange,
 }: {
   item: VaultMediaItem;
   favoriteSaving: boolean;
@@ -591,6 +606,7 @@ function VaultCard({
     newStatus: "watched" | "watchlist"
   ) => void;
   onRemoved: () => void;
+  onWatchCountChange: (newWatchCount: number) => void;
 }) {
   const isSeries = item.mediaType === "tv";
 
@@ -746,8 +762,10 @@ function VaultCard({
           mediaType={item.mediaType}
           vaultStatus={item.vaultStatus}
           progressStatus={item.progressStatus}
+          watchCount={item.watchCount}
           onStatusChange={onStatusChange}
           onRemoved={onRemoved}
+          onWatchCountChange={onWatchCountChange}
         />
       </div>
     </article>

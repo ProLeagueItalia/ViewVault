@@ -14,12 +14,22 @@ type MovieVaultActionsProps = {
   movieId: number;
   initialStatus: MovieVaultStatus;
   initialFavorite?: boolean;
+  initialWatchCount?: number;
+};
+
+type RecordMovieWatchResult = {
+  watch_count: number;
+};
+
+type RemoveMovieWatchResult = {
+  watch_count: number;
 };
 
 export default function MovieVaultActions({
   movieId,
   initialStatus,
   initialFavorite = false,
+  initialWatchCount = 0,
 }: MovieVaultActionsProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -29,6 +39,9 @@ export default function MovieVaultActions({
 
   const [isFavorite, setIsFavorite] =
     useState(initialFavorite);
+
+  const [watchCount, setWatchCount] =
+    useState(initialWatchCount);
 
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -51,10 +64,85 @@ export default function MovieVaultActions({
     return user;
   }
 
+  async function recordWatch(
+    successMessage: string
+  ) {
+    if (isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+    setHasError(false);
+
+    const user = await getAuthenticatedUser();
+
+    if (!user) {
+      setIsSaving(false);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "record_movie_watch",
+      {
+        p_movie_id: movieId,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Errore durante la registrazione della visione:",
+        {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        }
+      );
+
+      setMessage(
+        "Non è stato possibile registrare la visione."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    const result = (
+      Array.isArray(data) ? data[0] : data
+    ) as RecordMovieWatchResult | null;
+
+    if (!result) {
+      setMessage(
+        "Il database non ha restituito il conteggio delle visioni."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    setStatus("watched");
+    setWatchCount(result.watch_count);
+    setMessage(successMessage);
+    setHasError(false);
+    setIsSaving(false);
+
+    router.refresh();
+  }
+
   async function saveStatus(
     newStatus: "watched" | "watchlist"
   ) {
     if (isSaving) {
+      return;
+    }
+
+    /*
+     * Quando il film viene segnato come visto,
+     * registriamo una vera visione in watch_events.
+     */
+    if (newStatus === "watched") {
+      await recordWatch("Film segnato come visto.");
       return;
     }
 
@@ -106,12 +194,73 @@ export default function MovieVaultActions({
     setStatus(newStatus);
 
     setMessage(
-      newStatus === "watched"
-        ? "Film segnato come visto."
-        : "Film aggiunto alla lista Da vedere."
+      "Film aggiunto alla lista Da vedere."
     );
 
     setIsSaving(false);
+    router.refresh();
+  }
+
+  async function removeLastWatch() {
+    if (isSaving || watchCount <= 1) {
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+    setHasError(false);
+
+    const user = await getAuthenticatedUser();
+
+    if (!user) {
+      setIsSaving(false);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "remove_last_movie_watch",
+      {
+        p_movie_id: movieId,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Errore durante la rimozione dell'ultima visione:",
+        {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        }
+      );
+
+      setMessage(
+        "Non è stato possibile annullare l'ultima visione."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    const result = (
+      Array.isArray(data) ? data[0] : data
+    ) as RemoveMovieWatchResult | null;
+
+    if (!result) {
+      setMessage(
+        "Il database non ha restituito il nuovo conteggio."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    setWatchCount(result.watch_count);
+    setMessage("Ultima visione annullata.");
+    setHasError(false);
+    setIsSaving(false);
+
     router.refresh();
   }
 
@@ -223,6 +372,11 @@ export default function MovieVaultActions({
       return;
     }
 
+    /*
+     * Le visioni storiche in watch_events non vengono
+     * cancellate: rimuovere il film dal Vault non
+     * cancella la cronologia dei rewatch.
+     */
     setStatus(null);
     setIsFavorite(false);
     setMessage("Film rimosso dal Vault.");
@@ -291,9 +445,31 @@ export default function MovieVaultActions({
 
         {status === "watched" && (
           <>
-            <span className="flex items-center justify-center rounded-full bg-green-600 px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(22,163,74,0.35)]">
-              ✓ Visto
-            </span>
+            <button
+              type="button"
+              onClick={() =>
+                recordWatch("Nuova visione registrata.")
+              }
+              disabled={isSaving}
+              title="Aggiungi una nuova visione"
+              className="flex items-center justify-center rounded-full bg-green-600 px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(22,163,74,0.35)] transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving
+                ? "Salvataggio..."
+                : `✓ Visto ×${Math.max(watchCount, 1)}`}
+            </button>
+
+            {watchCount > 1 && (
+              <button
+                type="button"
+                onClick={removeLastWatch}
+                disabled={isSaving}
+                title="Annulla l'ultima visione registrata"
+                className="rounded-full border border-zinc-700 px-6 py-4 font-semibold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                ↩ Annulla ultima visione
+              </button>
+            )}
 
             <button
               type="button"

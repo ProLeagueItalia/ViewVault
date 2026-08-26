@@ -111,6 +111,7 @@ export default async function MoviePage({
   let isFavorite = false;
   let userRating: number | null = null;
   let userReview = "";
+  let watchCount = 0;
 
   if (user) {
     const { data, error } = await supabase
@@ -151,6 +152,33 @@ export default async function MoviePage({
 
       userReview =
         vaultRow.review ?? "";
+    }
+
+    const {
+      count: movieWatchCount,
+      error: watchCountError,
+    } = await supabase
+      .from("watch_events")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("user_id", user.id)
+      .eq("tmdb_id", movie.id)
+      .eq("media_type", "movie");
+
+    if (watchCountError) {
+      console.error(
+        "Errore nel recupero del numero di visioni:",
+        {
+          message: watchCountError.message,
+          details: watchCountError.details,
+          hint: watchCountError.hint,
+          code: watchCountError.code,
+        }
+      );
+    } else {
+      watchCount = movieWatchCount ?? 0;
     }
   }
 
@@ -284,6 +312,7 @@ export default async function MoviePage({
                   movieId={movie.id}
                   initialStatus={vaultStatus}
                   initialFavorite={isFavorite}
+                  initialWatchCount={watchCount}
                 />
 
                 {trailer && (

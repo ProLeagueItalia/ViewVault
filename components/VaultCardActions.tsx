@@ -14,14 +14,20 @@ type ProgressStatus =
   | "watched"
   | null;
 
+type WatchCountResult = {
+  watch_count: number;
+};
+
 type VaultCardActionsProps = {
   vaultId: string;
   tmdbId: number;
   mediaType: MediaType;
   vaultStatus: VaultStatus;
   progressStatus: ProgressStatus;
+  watchCount: number;
   onStatusChange: (newStatus: VaultStatus) => void;
   onRemoved: () => void;
+  onWatchCountChange: (newWatchCount: number) => void;
 };
 
 export default function VaultCardActions({
@@ -30,8 +36,10 @@ export default function VaultCardActions({
   mediaType,
   vaultStatus,
   progressStatus,
+  watchCount,
   onStatusChange,
   onRemoved,
+  onWatchCountChange,
 }: VaultCardActionsProps) {
   const supabase = useMemo(() => createClient(), []);
 
@@ -62,10 +70,149 @@ export default function VaultCardActions({
     return user;
   }
 
+  async function recordMovieWatch() {
+    if (isSaving || isSeries) {
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+    setHasError(false);
+
+    const user = await getUser();
+
+    if (!user) {
+      setIsSaving(false);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "record_movie_watch",
+      {
+        p_movie_id: tmdbId,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Errore durante la registrazione della visione:",
+        {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        }
+      );
+
+      setMessage(
+        "Non è stato possibile registrare la visione."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    const result = (
+      Array.isArray(data) ? data[0] : data
+    ) as WatchCountResult | null;
+
+    if (!result) {
+      setMessage(
+        "Il database non ha restituito il conteggio delle visioni."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    onStatusChange("watched");
+    onWatchCountChange(result.watch_count);
+
+    setMessage(
+      result.watch_count === 1
+        ? "Film segnato come visto."
+        : `Visione registrata. Visto ×${result.watch_count}.`
+    );
+
+    setHasError(false);
+    setIsSaving(false);
+  }
+
+  async function removeLastMovieWatch() {
+    if (
+      isSaving ||
+      isSeries ||
+      watchCount <= 1
+    ) {
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+    setHasError(false);
+
+    const user = await getUser();
+
+    if (!user) {
+      setIsSaving(false);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "remove_last_movie_watch",
+      {
+        p_movie_id: tmdbId,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Errore durante l'annullamento dell'ultima visione:",
+        {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        }
+      );
+
+      setMessage(
+        "Non è stato possibile annullare l'ultima visione."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    const result = (
+      Array.isArray(data) ? data[0] : data
+    ) as WatchCountResult | null;
+
+    if (!result) {
+      setMessage(
+        "Il database non ha restituito il nuovo conteggio."
+      );
+      setHasError(true);
+      setIsSaving(false);
+      return;
+    }
+
+    onWatchCountChange(result.watch_count);
+
+    setMessage("Ultima visione annullata.");
+    setHasError(false);
+    setIsSaving(false);
+  }
+
   async function updateMovieStatus(
     newStatus: VaultStatus
   ) {
     if (isSaving || isSeries) {
+      return;
+    }
+
+    if (newStatus === "watched") {
+      await recordMovieWatch();
       return;
     }
 
@@ -111,12 +258,8 @@ export default function VaultCardActions({
 
     onStatusChange(newStatus);
 
-    setMessage(
-      newStatus === "watched"
-        ? "Film segnato come visto."
-        : "Film segnato come da vedere."
-    );
-
+    setMessage("Film segnato come da vedere.");
+    setHasError(false);
     setIsSaving(false);
   }
 
@@ -247,29 +390,78 @@ export default function VaultCardActions({
             {isSaving ? "Attendi..." : "Rimuovi"}
           </button>
         </div>
+      ) : vaultStatus === "watched" ? (
+        <div className="space-y-2">
+          <div
+            className={`grid gap-2 ${
+              watchCount > 1
+                ? "grid-cols-2"
+                : "grid-cols-1"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={recordMovieWatch}
+              disabled={isSaving}
+              title="Aggiungi una nuova visione"
+              className="rounded-full bg-green-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving
+                ? "Salvataggio..."
+                : `✓ Visto ×${Math.max(
+                    watchCount,
+                    1
+                  )}`}
+            </button>
+
+            {watchCount > 1 && (
+              <button
+                type="button"
+                onClick={removeLastMovieWatch}
+                disabled={isSaving}
+                title="Annulla l'ultima visione"
+                className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                ↩ −1 visione
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                updateMovieStatus("watchlist")
+              }
+              disabled={isSaving}
+              className="rounded-full border border-violet-500/40 bg-violet-500/10 px-4 py-3 text-sm font-bold text-violet-300 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              👀 Da vedere
+            </button>
+
+            <button
+              type="button"
+              onClick={removeFromVault}
+              disabled={isSaving}
+              className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving ? "Attendi..." : "Rimuovi"}
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() =>
-              updateMovieStatus(
-                vaultStatus === "watched"
-                  ? "watchlist"
-                  : "watched"
-              )
+              updateMovieStatus("watched")
             }
             disabled={isSaving}
-            className={`rounded-full px-4 py-3 text-sm font-bold transition ${
-              vaultStatus === "watched"
-                ? "border border-violet-500/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
-                : "bg-green-600 text-white hover:bg-green-700"
-            } disabled:cursor-not-allowed disabled:opacity-60`}
+            className="rounded-full bg-green-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving
               ? "Salvataggio..."
-              : vaultStatus === "watched"
-                ? "👀 Segna come da vedere"
-                : "✓ Segna come visto"}
+              : "✓ Segna come visto"}
           </button>
 
           <button

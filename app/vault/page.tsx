@@ -35,6 +35,10 @@ type SeriesProgressRow = {
   status: "watchlist" | "in_progress" | "watched";
 };
 
+type WatchEventRow = {
+  tmdb_id: number;
+};
+
 type MovieDetails = {
   id: number;
   title: string;
@@ -65,25 +69,34 @@ export default async function VaultPage() {
     redirect("/");
   }
 
-  const [vaultResponse, progressResponse] =
-    await Promise.all([
-      supabase
-        .from("vault_items")
-        .select(
-          "id, tmdb_id, media_type, status, rating, review, is_favorite, created_at"
-        )
-        .eq("user_id", user.id)
-        .order("created_at", {
-          ascending: false,
-        }),
+  const [
+    vaultResponse,
+    progressResponse,
+    watchEventsResponse,
+  ] = await Promise.all([
+    supabase
+      .from("vault_items")
+      .select(
+        "id, tmdb_id, media_type, status, rating, review, is_favorite, created_at"
+      )
+      .eq("user_id", user.id)
+      .order("created_at", {
+        ascending: false,
+      }),
 
-      supabase
-        .from("series_progress")
-        .select(
-          "series_id, total_episodes, watched_episodes, status"
-        )
-        .eq("user_id", user.id),
-    ]);
+    supabase
+      .from("series_progress")
+      .select(
+        "series_id, total_episodes, watched_episodes, status"
+      )
+      .eq("user_id", user.id),
+
+    supabase
+      .from("watch_events")
+      .select("tmdb_id")
+      .eq("user_id", user.id)
+      .eq("media_type", "movie"),
+  ]);
 
   if (vaultResponse.error) {
     console.error("Errore nel recupero del Vault:", {
@@ -117,6 +130,18 @@ export default async function VaultPage() {
     );
   }
 
+  if (watchEventsResponse.error) {
+    console.error(
+      "Errore nel recupero delle visioni film:",
+      {
+        message: watchEventsResponse.error.message,
+        details: watchEventsResponse.error.details,
+        hint: watchEventsResponse.error.hint,
+        code: watchEventsResponse.error.code,
+      }
+    );
+  }
+
   const vaultItems =
     (vaultResponse.data as VaultItem[] | null) ?? [];
 
@@ -125,12 +150,26 @@ export default async function VaultPage() {
       | SeriesProgressRow[]
       | null) ?? [];
 
+  const watchEventRows =
+    (watchEventsResponse.data as
+      | WatchEventRow[]
+      | null) ?? [];
+
   const progressMap = new Map(
     progressRows.map((progress) => [
       progress.series_id,
       progress,
     ])
   );
+
+  const watchCountMap = new Map<number, number>();
+
+  for (const event of watchEventRows) {
+    watchCountMap.set(
+      event.tmdb_id,
+      (watchCountMap.get(event.tmdb_id) ?? 0) + 1
+    );
+  }
 
   const itemResults = await Promise.allSettled(
     vaultItems.map(
@@ -141,6 +180,9 @@ export default async function VaultPage() {
           const movie = (await getMovie(
             String(vaultItem.tmdb_id)
           )) as MovieDetails;
+
+          const storedWatchCount =
+            watchCountMap.get(vaultItem.tmdb_id) ?? 0;
 
           return {
             vaultId: vaultItem.id,
@@ -164,6 +206,10 @@ export default async function VaultPage() {
             totalEpisodes: 0,
             isFavorite: vaultItem.is_favorite,
             createdAt: vaultItem.created_at,
+            watchCount:
+              vaultItem.status === "watched"
+                ? Math.max(storedWatchCount, 1)
+                : storedWatchCount,
           };
         }
 
@@ -204,6 +250,7 @@ export default async function VaultPage() {
             0,
           isFavorite: vaultItem.is_favorite,
           createdAt: vaultItem.created_at,
+          watchCount: 0,
         };
       }
     )
