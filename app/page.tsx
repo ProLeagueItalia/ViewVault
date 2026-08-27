@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import Navbar from "../components/Navbar";
 import StatsCards from "../components/StatsCards";
@@ -6,7 +7,17 @@ import MostWatchedNow from "../components/MostWatchedNow";
 import NewMovies from "../components/NewMovies";
 import NewSeries from "../components/NewSeries";
 
-export default function Home() {
+import { createClient } from "../lib/supabase/server";
+
+export default async function Home() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isLoggedIn = Boolean(user);
+
   return (
     <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
       <Navbar />
@@ -27,15 +38,40 @@ export default function Home() {
           costruisci il tuo Vault personale.
         </p>
 
-        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-          <button className="rounded-full bg-[#7C3AED] px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.5)] transition hover:bg-[#2563EB]">
-            Inizia ora
-          </button>
+        {isLoggedIn ? (
+          <div className="mt-10 flex w-full max-w-xl flex-col gap-4 sm:w-auto sm:max-w-none sm:flex-row">
+            <Link
+              href="/import/tv-time"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#7C3AED] px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.5)] transition hover:bg-[#6D28D9]"
+            >
+              <span aria-hidden="true">📥</span>
+              Importa da TV Time
+            </Link>
 
-          <button className="rounded-full border border-zinc-700 px-8 py-4 text-lg font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white">
-            Scopri di più
-          </button>
-        </div>
+            <Link
+              href="/ricerca"
+              className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-8 py-4 text-lg font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/10 hover:text-white"
+            >
+              + Aggiungi contenuti
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-10 flex w-full max-w-xl flex-col gap-4 sm:w-auto sm:max-w-none sm:flex-row">
+            <Link
+              href="/account"
+              className="inline-flex items-center justify-center rounded-full bg-[#7C3AED] px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.5)] transition hover:bg-[#6D28D9]"
+            >
+              Inizia ora
+            </Link>
+
+            <Link
+              href="/ricerca"
+              className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-8 py-4 text-lg font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
+            >
+              Esplora ViewVault
+            </Link>
+          </div>
+        )}
 
         {/* Barra di ricerca */}
         <form

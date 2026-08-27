@@ -293,12 +293,22 @@ export default async function VaultPage() {
               </p>
             </div>
 
-            <Link
-              href="/ricerca"
-              className="inline-flex w-fit items-center justify-center rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
-            >
-              + Aggiungi contenuti
-            </Link>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <Link
+                href="/import/tv-time"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#7C3AED]/60 bg-[#7C3AED]/10 px-7 py-3 font-bold text-[#C4B5FD] transition hover:border-[#8B5CF6] hover:bg-[#7C3AED]/20 hover:text-white"
+              >
+                <span aria-hidden="true">📥</span>
+                Importa da TV Time
+              </Link>
+
+              <Link
+                href="/ricerca"
+                className="inline-flex items-center justify-center rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
+              >
+                + Aggiungi contenuti
+              </Link>
+            </div>
           </section>
 
           {vaultMediaItems.length > 0 ? (
