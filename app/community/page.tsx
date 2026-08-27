@@ -1,5 +1,6 @@
 import Navbar from "../../components/Navbar";
 import BackButton from "../../components/BackButton";
+import FriendFinder from "../../components/FriendFinder";
 import RankingsSection, {
   type RankingItem,
   type RankingScope,
@@ -256,33 +257,40 @@ export default async function CommunityPage() {
       movieRankings[scope] = (
         movieRowsByScope.get(scope) ?? []
       )
-        .map((row, index): RankingItem | null => {
-          const movie =
-            movieDetailsMap.get(row.tmdb_id);
+        .map(
+          (
+            row,
+            index
+          ): RankingItem | null => {
+            const movie =
+              movieDetailsMap.get(row.tmdb_id);
 
-          if (!movie) {
-            return null;
+            if (!movie) {
+              return null;
+            }
+
+            return {
+              rank: index + 1,
+              tmdbId: row.tmdb_id,
+              mediaType: "movie",
+              title: movie.title,
+              year: movie.release_date
+                ? movie.release_date.slice(0, 4)
+                : "N/D",
+              posterUrl: getPosterUrl(
+                movie.poster_path
+              ),
+              totalViews: Number(
+                row.total_views
+              ),
+              uniqueViewers: Number(
+                row.unique_viewers
+              ),
+              equivalentViews: null,
+              episodeViews: null,
+            };
           }
-
-          return {
-            rank: index + 1,
-            tmdbId: row.tmdb_id,
-            mediaType: "movie",
-            title: movie.title,
-            year: movie.release_date
-              ? movie.release_date.slice(0, 4)
-              : "N/D",
-            posterUrl: getPosterUrl(
-              movie.poster_path
-            ),
-            totalViews: Number(row.total_views),
-            uniqueViewers: Number(
-              row.unique_viewers
-            ),
-            equivalentViews: null,
-            episodeViews: null,
-          };
-        })
+        )
         .filter(
           (item): item is RankingItem =>
             item !== null
@@ -291,37 +299,47 @@ export default async function CommunityPage() {
       seriesRankings[scope] = (
         seriesRowsByScope.get(scope) ?? []
       )
-        .map((row, index): RankingItem | null => {
-          const series =
-            seriesDetailsMap.get(row.series_id);
+        .map(
+          (
+            row,
+            index
+          ): RankingItem | null => {
+            const series =
+              seriesDetailsMap.get(
+                row.series_id
+              );
 
-          if (!series) {
-            return null;
+            if (!series) {
+              return null;
+            }
+
+            return {
+              rank: index + 1,
+              tmdbId: row.series_id,
+              mediaType: "tv",
+              title: series.name,
+              year: series.first_air_date
+                ? series.first_air_date.slice(
+                    0,
+                    4
+                  )
+                : "N/D",
+              posterUrl: getPosterUrl(
+                series.poster_path
+              ),
+              totalViews: null,
+              uniqueViewers: Number(
+                row.unique_viewers
+              ),
+              equivalentViews: Number(
+                row.equivalent_views
+              ),
+              episodeViews: Number(
+                row.episode_views
+              ),
+            };
           }
-
-          return {
-            rank: index + 1,
-            tmdbId: row.series_id,
-            mediaType: "tv",
-            title: series.name,
-            year: series.first_air_date
-              ? series.first_air_date.slice(0, 4)
-              : "N/D",
-            posterUrl: getPosterUrl(
-              series.poster_path
-            ),
-            totalViews: null,
-            uniqueViewers: Number(
-              row.unique_viewers
-            ),
-            equivalentViews: Number(
-              row.equivalent_views
-            ),
-            episodeViews: Number(
-              row.episode_views
-            ),
-          };
-        })
+        )
         .filter(
           (item): item is RankingItem =>
             item !== null
@@ -353,9 +371,10 @@ export default async function CommunityPage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 md:text-xl">
-              Scopri cosa sta guardando la community,
-              confronta i titoli più visti e trova nuove
-              storie attraverso gli utenti ViewVault.
+              Scopri cosa sta guardando la
+              community, confronta i titoli più
+              visti e trova nuove storie
+              attraverso gli utenti ViewVault.
             </p>
           </div>
 
@@ -378,6 +397,12 @@ export default async function CommunityPage() {
           </div>
         </div>
 
+        {user && (
+          <FriendFinder
+            currentUserId={user.id}
+          />
+        )}
+
         <RankingsSection
           isLoggedIn={Boolean(user)}
           countryCode={countryCode}
@@ -396,10 +421,10 @@ export default async function CommunityPage() {
           </h2>
 
           <p className="mt-3 max-w-2xl leading-7 text-zinc-400">
-            La Community di ViewVault crescerà nel tempo
-            con strumenti pensati per mettere in contatto
-            utenti con gusti, passioni e visioni in
-            comune.
+            La Community di ViewVault crescerà
+            nel tempo con strumenti pensati per
+            mettere in contatto utenti con gusti,
+            passioni e visioni in comune.
           </p>
 
           <div className="mt-7 grid gap-5 md:grid-cols-2">
@@ -442,11 +467,12 @@ export default async function CommunityPage() {
               </h2>
 
               <p className="mt-4 leading-7 text-zinc-300">
-                Alcune funzionalità avanzate della
-                Community potranno essere riservate ai
-                futuri piani ViewVault Pro o Premium.
-                Prezzi e caratteristiche verranno
-                definiti più avanti, quando il servizio
+                Alcune funzionalità avanzate
+                della Community potranno essere
+                riservate ai futuri piani
+                ViewVault Pro o Premium. Prezzi e
+                caratteristiche verranno definiti
+                più avanti, quando il servizio
                 sarà pronto.
               </p>
             </div>
@@ -477,15 +503,16 @@ export default async function CommunityPage() {
           </h2>
 
           <p className="mt-3 max-w-3xl leading-7 text-zinc-400">
-            Puoi già aggiungere altri utenti, ricevere
-            richieste di amicizia, accettarle dalla
-            campanella delle notifiche e visitare i
-            profili dei tuoi amici.
+            Puoi già cercare altri utenti,
+            inviare richieste di amicizia,
+            accettarle, visitare i profili e
+            scoprire nuove persone nella
+            Community.
           </p>
 
           <p className="mt-4 text-sm font-semibold text-[#C4B5FD]">
-            La gestione completa degli amici arriverà
-            direttamente nel tuo profilo personale.
+            Cerca un utente qui sopra e costruisci
+            la tua rete di amici su ViewVault.
           </p>
         </section>
       </section>
