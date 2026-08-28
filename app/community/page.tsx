@@ -1,6 +1,7 @@
 import Navbar from "../../components/Navbar";
 import BackButton from "../../components/BackButton";
 import FriendFinder from "../../components/FriendFinder";
+import FriendsActivityFeed from "../../components/FriendsActivityFeed";
 import RankingsSection, {
   type RankingItem,
   type RankingScope,
@@ -402,6 +403,8 @@ export default async function CommunityPage() {
             currentUserId={user.id}
           />
         )}
+
+        {user && <FriendsActivityFeed />}
 
         <RankingsSection
           isLoggedIn={Boolean(user)}

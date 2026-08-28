@@ -532,7 +532,7 @@ export default function FriendFinder({
 
                 <div className="flex flex-col items-start gap-4">
                   <Link
-                    href={`/profile/${profile.id}`}
+                    href={`/u/${profile.username}`}
                     className="text-sm font-bold text-zinc-300 transition hover:text-[#C4B5FD]"
                   >
                     Visualizza profilo →

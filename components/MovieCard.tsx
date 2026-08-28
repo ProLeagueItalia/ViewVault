@@ -250,19 +250,31 @@ export default function MovieCard({
       return;
     }
 
-    const { error: saveError } = await supabase
-  .from("vault_items")
-  .upsert(
-    {
-      user_id: user.id,
-      tmdb_id: id,
-      media_type: "movie",
-      status: newStatus,
-    },
-    {
-      onConflict: "user_id,tmdb_id,media_type",
-    }
-  );
+    let saveError = null;
+
+if (newStatus === "watched") {
+  const { error } = await supabase.rpc("record_movie_watch", {
+    p_movie_id: id,
+  });
+
+  saveError = error;
+} else {
+  const { error } = await supabase
+    .from("vault_items")
+    .upsert(
+      {
+        user_id: user.id,
+        tmdb_id: id,
+        media_type: "movie",
+        status: newStatus,
+      },
+      {
+        onConflict: "user_id,tmdb_id,media_type",
+      }
+    );
+
+  saveError = error;
+}
 
     if (saveError) {
       console.error(
