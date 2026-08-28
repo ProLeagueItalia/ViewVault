@@ -1268,14 +1268,14 @@ type TMDBTrendingResponse = {
   >;
 };
 
-export async function getTrendingAll(): Promise<
-  TMDBTrendingItem[]
-> {
+export async function getTrendingAll(
+  language = "it-IT"
+): Promise<TMDBTrendingItem[]> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(

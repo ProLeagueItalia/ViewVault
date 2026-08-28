@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server";
+
 import { createClient } from "../lib/supabase/server";
 import {
   getMovie,
@@ -44,6 +46,7 @@ type EpisodeGroup = {
 };
 
 export default async function StatsCards() {
+  const t = await getTranslations("StatsCards");
   const supabase = await createClient();
 
   const {
@@ -303,27 +306,27 @@ export default async function StatsCards() {
 
   const stats = [
     {
-      label: "Film visti",
+      label: t("moviesWatched"),
       value: filmsWatched,
       colorClass: "text-violet-500",
     },
     {
-      label: "Da vedere",
+      label: t("watchlist"),
       value: watchlistCount,
       colorClass: "text-cyan-400",
     },
     {
-      label: "Serie TV",
+      label: t("series"),
       value: trackedSeries,
       colorClass: "text-blue-500",
     },
     {
-      label: "Ore viste",
+      label: t("hoursWatched"),
       value: formattedTime,
       colorClass: "text-yellow-400",
     },
     {
-      label: "Recensioni",
+      label: t("reviews"),
       value: reviewsCount,
       colorClass: "text-green-500",
     },
@@ -332,7 +335,7 @@ export default async function StatsCards() {
   return (
     <section className="mx-auto mt-16 max-w-7xl px-6">
       <h2 className="mb-8 text-3xl font-bold">
-        📊 Le tue statistiche
+        📊 {t("title")}
       </h2>
 
       <div className="grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5">

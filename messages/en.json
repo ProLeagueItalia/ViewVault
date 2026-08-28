@@ -1,0 +1,40 @@
+{
+  "Navbar": {
+    "home": "Home",
+    "movies": "Movies",
+    "series": "TV Series",
+    "vault": "My Vault",
+    "dashboard": "Dashboard",
+    "community": "Community",
+    "account": "Account",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "backHome": "Back to ViewVault Home",
+    "selectLanguage": "Select language"
+  },
+  "Home": {
+    "heroDescription": "Track movies and TV series, count your watch time, rate, review and build your personal Vault.",
+    "importTvTime": "Import from TV Time",
+    "addContent": "Add content",
+    "startNow": "Get started",
+    "explore": "Explore ViewVault",
+    "searchPlaceholder": "Search for a movie or TV series...",
+    "search": "Search"
+  },
+  "StatsCards": {
+    "title": "Your statistics",
+    "moviesWatched": "Movies watched",
+    "watchlist": "Watchlist",
+    "series": "TV Series",
+    "hoursWatched": "Hours watched",
+    "reviews": "Reviews"
+  },
+  "MostWatchedNow": {
+    "eyebrow": "Global trending",
+    "title": "Most watched right now",
+    "description": "Movies and TV series dominating international trends right now.",
+    "movie": "MOVIE",
+    "series": "TV SERIES",
+    "notAvailable": "N/A"
+  }
+}

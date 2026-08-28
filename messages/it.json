@@ -1,0 +1,40 @@
+{
+  "Navbar": {
+    "home": "Home",
+    "movies": "Film",
+    "series": "Serie TV",
+    "vault": "Il mio Vault",
+    "dashboard": "Dashboard",
+    "community": "Community",
+    "account": "Account",
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu",
+    "backHome": "Torna alla Home di ViewVault",
+    "selectLanguage": "Seleziona lingua"
+  },
+  "Home": {
+    "heroDescription": "Tieni traccia di film e serie TV, conta le ore viste, vota, recensisci e costruisci il tuo Vault personale.",
+    "importTvTime": "Importa da TV Time",
+    "addContent": "Aggiungi contenuti",
+    "startNow": "Inizia ora",
+    "explore": "Esplora ViewVault",
+    "searchPlaceholder": "Cerca un film o una serie TV...",
+    "search": "Cerca"
+  },
+  "StatsCards": {
+    "title": "Le tue statistiche",
+    "moviesWatched": "Film visti",
+    "watchlist": "Da vedere",
+    "series": "Serie TV",
+    "hoursWatched": "Ore viste",
+    "reviews": "Recensioni"
+  },
+  "MostWatchedNow": {
+    "eyebrow": "Trending globale",
+    "title": "I più visti del momento",
+    "description": "Film e serie TV che stanno dominando le tendenze internazionali in questo momento.",
+    "movie": "FILM",
+    "series": "SERIE TV",
+    "notAvailable": "N/D"
+  }
+}

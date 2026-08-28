@@ -1,4 +1,8 @@
 import Link from "next/link";
+import {
+  getLocale,
+  getTranslations,
+} from "next-intl/server";
 
 import {
   getPosterUrl,
@@ -8,11 +12,27 @@ import {
 
 const MAX_ITEMS = 10;
 
+const TMDB_LANGUAGES: Record<string, string> = {
+  it: "it-IT",
+  en: "en-US",
+  es: "es-ES",
+  fr: "fr-FR",
+  de: "de-DE",
+};
+
 export default async function MostWatchedNow() {
+  const t = await getTranslations("MostWatchedNow");
+  const locale = await getLocale();
+
+  const tmdbLanguage =
+    TMDB_LANGUAGES[locale] ?? "it-IT";
+
   let items: TMDBTrendingItem[] = [];
 
   try {
-    const trending = await getTrendingAll();
+    const trending = await getTrendingAll(
+      tmdbLanguage
+    );
 
     items = trending
       .filter(
@@ -37,16 +57,15 @@ export default async function MostWatchedNow() {
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-            Trending globale
+            {t("eyebrow")}
           </p>
 
           <h2 className="mt-2 text-3xl font-black text-white md:text-4xl">
-            🔥 I più visti del momento
+            🔥 {t("title")}
           </h2>
 
           <p className="mt-3 max-w-2xl text-zinc-400">
-            Film e serie TV che stanno dominando le tendenze
-            internazionali in questo momento.
+            {t("description")}
           </p>
         </div>
       </div>
@@ -57,6 +76,9 @@ export default async function MostWatchedNow() {
             key={`${item.media_type}-${item.id}`}
             item={item}
             position={index + 1}
+            movieLabel={t("movie")}
+            seriesLabel={t("series")}
+            notAvailableLabel={t("notAvailable")}
           />
         ))}
       </div>
@@ -67,25 +89,33 @@ export default async function MostWatchedNow() {
 function TrendingCard({
   item,
   position,
+  movieLabel,
+  seriesLabel,
+  notAvailableLabel,
 }: {
   item: TMDBTrendingItem;
   position: number;
+  movieLabel: string;
+  seriesLabel: string;
+  notAvailableLabel: string;
 }) {
   const href =
     item.media_type === "movie"
       ? `/film/${item.id}`
       : `/serie/${item.id}`;
 
-  const posterUrl = getPosterUrl(item.poster_path);
+  const posterUrl = getPosterUrl(
+    item.poster_path
+  );
 
   const year = item.date
     ? item.date.slice(0, 4)
-    : "N/D";
+    : notAvailableLabel;
 
   const mediaLabel =
-  item.media_type === "movie"
-    ? "🎬 FILM"
-    : "📺 SERIE TV";
+    item.media_type === "movie"
+      ? `🎬 ${movieLabel}`
+      : `📺 ${seriesLabel}`;
 
   return (
     <Link
@@ -111,7 +141,8 @@ function TrendingCard({
 
         {item.vote_average > 0 && (
           <div className="absolute bottom-3 right-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-yellow-300 backdrop-blur-sm">
-            ⭐ {item.vote_average.toFixed(1)}
+            ⭐{" "}
+            {item.vote_average.toFixed(1)}
           </div>
         )}
       </div>

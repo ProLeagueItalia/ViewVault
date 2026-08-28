@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import Navbar from "../components/Navbar";
 import StatsCards from "../components/StatsCards";
@@ -11,6 +12,7 @@ import { createClient } from "../lib/supabase/server";
 
 export default async function Home() {
   const supabase = await createClient();
+  const t = await getTranslations("Home");
 
   const {
     data: { user },
@@ -35,8 +37,7 @@ export default async function Home() {
         </div>
 
         <p className="mx-auto mt-4 w-full max-w-2xl px-1 text-base leading-7 text-zinc-300 sm:text-lg md:text-2xl md:leading-9">
-          Tieni traccia di film e serie TV, conta le ore viste, vota,
-          recensisci e costruisci il tuo Vault personale.
+          {t("heroDescription")}
         </p>
 
         {isLoggedIn ? (
@@ -46,14 +47,14 @@ export default async function Home() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#7C3AED] px-5 py-4 text-base font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.5)] transition hover:bg-[#6D28D9] sm:w-auto sm:px-8 sm:text-lg"
             >
               <span aria-hidden="true">📥</span>
-              Importa da TV Time
+              {t("importTvTime")}
             </Link>
 
             <Link
               href="/ricerca"
               className="inline-flex w-full items-center justify-center rounded-full border border-zinc-700 px-5 py-4 text-base font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/10 hover:text-white sm:w-auto sm:px-8 sm:text-lg"
             >
-              + Aggiungi contenuti
+              + {t("addContent")}
             </Link>
           </div>
         ) : (
@@ -62,14 +63,14 @@ export default async function Home() {
               href="/account"
               className="inline-flex w-full items-center justify-center rounded-full bg-[#7C3AED] px-5 py-4 text-base font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.5)] transition hover:bg-[#6D28D9] sm:w-auto sm:px-8 sm:text-lg"
             >
-              Inizia ora
+              {t("startNow")}
             </Link>
 
             <Link
               href="/ricerca"
               className="inline-flex w-full items-center justify-center rounded-full border border-zinc-700 px-5 py-4 text-base font-semibold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white sm:w-auto sm:px-8 sm:text-lg"
             >
-              Esplora ViewVault
+              {t("explore")}
             </Link>
           </div>
         )}
@@ -82,7 +83,7 @@ export default async function Home() {
           <input
             type="search"
             name="q"
-            placeholder="🔎 Cerca un film o una serie TV..."
+            placeholder={`🔎 ${t("searchPlaceholder")}`}
             autoComplete="off"
             className="min-w-0 flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-5 py-4 text-base text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/20 sm:px-6 sm:text-lg"
           />
@@ -91,7 +92,7 @@ export default async function Home() {
             type="submit"
             className="w-full rounded-full bg-[#7C3AED] px-8 py-4 text-base font-semibold text-white transition hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.4)] sm:w-auto sm:text-lg"
           >
-            Cerca
+            {t("search")}
           </button>
         </form>
       </section>
