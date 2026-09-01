@@ -1,4 +1,8 @@
 import Link from "next/link";
+import {
+  getLocale,
+  getTranslations,
+} from "next-intl/server";
 
 import AppHeader from "../../components/AppHeader";
 import BackButton from "../../components/BackButton";
@@ -55,6 +59,16 @@ const ITEMS_PER_PAGE = 20;
 export default async function SeriesPage({
   searchParams,
 }: SeriesPageProps) {
+  const t = await getTranslations(
+    "SeriesPage"
+  );
+
+  const tc = await getTranslations(
+    "Catalog"
+  );
+
+  const locale = await getLocale();
+
   const params =
     await Promise.resolve(searchParams);
 
@@ -141,7 +155,10 @@ export default async function SeriesPage({
     params.actor?.trim() ?? "";
 
   let actorId: number | undefined;
-  let actorDisplayName = actorQuery;
+
+  let actorDisplayName =
+    actorQuery;
+
   let actorNotFound = false;
 
   /*
@@ -214,7 +231,9 @@ export default async function SeriesPage({
 
     if (actorQuery) {
       const actor =
-        await findActorByName(actorQuery);
+        await findActorByName(
+          actorQuery
+        );
 
       if (actor) {
         actorId = actor.id;
@@ -229,7 +248,8 @@ export default async function SeriesPage({
      */
 
     if (hasInvalidYearRange) {
-      genres = await getSeriesGenres();
+      genres =
+        await getSeriesGenres();
     }
 
     /*
@@ -237,7 +257,8 @@ export default async function SeriesPage({
      */
 
     else if (actorNotFound) {
-      genres = await getSeriesGenres();
+      genres =
+        await getSeriesGenres();
     }
 
     /*
@@ -261,59 +282,61 @@ export default async function SeriesPage({
       genres = genreResponse;
 
       let filteredSeries =
-        actorSeries.filter((series) => {
-          /*
-           * GENERE
-           */
+        actorSeries.filter(
+          (series) => {
+            /*
+             * GENERE
+             */
 
-          if (
-            genreId !== undefined &&
-            !series.genre_ids?.includes(
-              genreId
-            )
-          ) {
-            return false;
+            if (
+              genreId !== undefined &&
+              !series.genre_ids?.includes(
+                genreId
+              )
+            ) {
+              return false;
+            }
+
+            /*
+             * ANNO
+             */
+
+            const seriesYear =
+              getSeriesYear(
+                series.first_air_date
+              );
+
+            if (
+              yearFrom !== undefined &&
+              (seriesYear === null ||
+                seriesYear < yearFrom)
+            ) {
+              return false;
+            }
+
+            if (
+              yearTo !== undefined &&
+              (seriesYear === null ||
+                seriesYear > yearTo)
+            ) {
+              return false;
+            }
+
+            /*
+             * VOTO
+             */
+
+            if (
+              minVote !== undefined &&
+              series.vote_average <
+                minVote
+            ) {
+              return false;
+            }
+
+            return true;
           }
-
-          /*
-           * ANNO
-           */
-
-          const seriesYear =
-            getSeriesYear(
-              series.first_air_date
-            );
-
-          if (
-            yearFrom !== undefined &&
-            (seriesYear === null ||
-              seriesYear < yearFrom)
-          ) {
-            return false;
-          }
-
-          if (
-            yearTo !== undefined &&
-            (seriesYear === null ||
-              seriesYear > yearTo)
-          ) {
-            return false;
-          }
-
-          /*
-           * VOTO
-           */
-
-          if (
-            minVote !== undefined &&
-            series.vote_average <
-              minVote
-          ) {
-            return false;
-          }
-
-          return true;
-        });
+        );
 
       /*
        * ORDINAMENTO LOCALE
@@ -322,7 +345,8 @@ export default async function SeriesPage({
       filteredSeries =
         sortSeriesLocally(
           filteredSeries,
-          sortBy
+          sortBy,
+          locale
         );
 
       totalResults =
@@ -416,7 +440,10 @@ export default async function SeriesPage({
       ]);
 
       trendingSeries =
-        trendingResponse.slice(0, 8);
+        trendingResponse.slice(
+          0,
+          8
+        );
 
       popularSeries =
         popularResponse.results.slice(
@@ -511,7 +538,8 @@ export default async function SeriesPage({
   }
 
   if (
-    sortBy !== "popularity.desc"
+    sortBy !==
+    "popularity.desc"
   ) {
     paginationBaseParams.set(
       "sort",
@@ -551,38 +579,89 @@ export default async function SeriesPage({
       currentYear - index
   );
 
+  /*
+   * ETICHETTA ORDINAMENTO
+   */
+
+  function getSortLabel(
+    sort: SeriesSortOption
+  ) {
+    if (
+      sort ===
+      "vote_average.desc"
+    ) {
+      return t(
+        "highestRated"
+      );
+    }
+
+    if (
+      sort ===
+      "first_air_date.desc"
+    ) {
+      return tc("newest");
+    }
+
+    if (
+      sort ===
+      "first_air_date.asc"
+    ) {
+      return t("oldest");
+    }
+
+    if (
+      sort === "name.asc"
+    ) {
+      return tc("titleAZ");
+    }
+
+    if (
+      sort === "name.desc"
+    ) {
+      return tc("titleZA");
+    }
+
+    return tc("mostPopular");
+  }
+
+  const formattedTotalResults =
+    new Intl.NumberFormat(
+      locale
+    ).format(totalResults);
+
   return (
-  <>
-    <AppHeader />
+    <>
+      <AppHeader />
 
-    <main className="min-h-screen bg-[#0D0D0D] pb-24 text-white">
-      {/* PULSANTE INDIETRO */}
-      <div className="mx-auto max-w-7xl px-6 pt-6">
-        <BackButton fallbackHref="/" />
-      </div>
+      <main className="min-h-screen bg-[#0D0D0D] pb-24 text-white">
+        {/* PULSANTE INDIETRO */}
 
-      {/* HERO */}
+        <div className="mx-auto max-w-7xl px-6 pt-6">
+          <BackButton fallbackHref="/" />
+        </div>
+
+        {/* HERO */}
 
         <section className="border-b border-zinc-800 bg-gradient-to-b from-[#10131F] via-[#0D0D0D] to-[#0D0D0D]">
           <div className="mx-auto max-w-7xl px-6 pb-16 pt-16">
             <div className="max-w-3xl">
               <span className="inline-flex rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm font-bold text-violet-300">
-                📺 Catalogo Serie TV
+                📺 {t("catalogLabel")}
               </span>
 
               <h1 className="mt-6 text-5xl font-black tracking-tight md:text-7xl">
-                Trova la tua prossima{" "}
+                {t("heroPrefix")}{" "}
                 <span className="text-[#7C3AED]">
-                  serie
+                  {t(
+                    "heroHighlight"
+                  )}
                 </span>
               </h1>
 
               <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
-                Scopri le serie del momento,
-                sfoglia quelle più popolari e
-                tieni sotto controllo tutto ciò
-                che vuoi vedere o che hai già
-                iniziato.
+                {t(
+                  "heroDescription"
+                )}
               </p>
             </div>
 
@@ -598,14 +677,18 @@ export default async function SeriesPage({
                   htmlFor="series-search"
                   className="sr-only"
                 >
-                  Cerca una serie TV
+                  {t(
+                    "searchLabel"
+                  )}
                 </label>
 
                 <input
                   id="series-search"
                   name="q"
                   type="search"
-                  placeholder="🔎 Cerca una serie TV..."
+                  placeholder={t(
+                    "searchPlaceholder"
+                  )}
                   autoComplete="off"
                   className="min-w-0 flex-1 rounded-full border border-zinc-700 bg-zinc-900/90 px-6 py-4 text-base text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-violet-500/10"
                 />
@@ -614,7 +697,7 @@ export default async function SeriesPage({
                   type="submit"
                   className="rounded-full bg-[#7C3AED] px-8 py-4 font-bold text-white transition hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.35)]"
                 >
-                  Cerca
+                  {tc("search")}
                 </button>
               </form>
 
@@ -622,7 +705,7 @@ export default async function SeriesPage({
                 href="#filtri"
                 className="inline-flex items-center justify-center rounded-full border border-[#7C3AED] bg-[#7C3AED]/10 px-8 py-4 font-bold text-[#C4B5FD] transition hover:bg-[#7C3AED] hover:text-white"
               >
-                🎛 Filtri
+                🎛 {tc("filters")}
               </a>
             </div>
           </div>
@@ -636,13 +719,15 @@ export default async function SeriesPage({
               </p>
 
               <h2 className="mt-5 text-2xl font-bold text-red-200">
-                Catalogo momentaneamente non disponibile
+                {t(
+                  "unavailableTitle"
+                )}
               </h2>
 
               <p className="mt-3 text-zinc-400">
-                Non è stato possibile recuperare
-                le serie TV da TMDB. Riprova tra
-                poco.
+                {t(
+                  "unavailableDescription"
+                )}
               </p>
             </section>
           ) : (
@@ -652,39 +737,99 @@ export default async function SeriesPage({
               {!hasActiveFilters && (
                 <>
                   <SeriesSection
-                    eyebrow="Il momento"
-                    title="🔥 Serie di tendenza"
-                    description="Le serie TV che stanno attirando più attenzione questa settimana."
+                    eyebrow={t(
+                      "trendingEyebrow"
+                    )}
+                    title={t(
+                      "trendingTitle"
+                    )}
+                    description={t(
+                      "trendingDescription"
+                    )}
                     series={
                       trendingSeries
                     }
+                    seriesLabel={t(
+                      "series"
+                    )}
+                    durationLabel={t(
+                      "episodesInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
 
                   <SeriesSection
-                    eyebrow="Le più seguite"
-                    title="📺 Serie popolari"
-                    description="Le serie più popolari e cercate del momento."
+                    eyebrow={t(
+                      "popularEyebrow"
+                    )}
+                    title={t(
+                      "popularTitle"
+                    )}
+                    description={t(
+                      "popularDescription"
+                    )}
                     series={
                       popularSeries
                     }
+                    seriesLabel={t(
+                      "series"
+                    )}
+                    durationLabel={t(
+                      "episodesInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
 
                   <SeriesSection
-                    eyebrow="Da non perdere"
-                    title="⭐ Più votate"
-                    description="Le serie TV con alcune delle valutazioni più alte."
+                    eyebrow={t(
+                      "topRatedEyebrow"
+                    )}
+                    title={t(
+                      "topRatedTitle"
+                    )}
+                    description={t(
+                      "topRatedDescription"
+                    )}
                     series={
                       topRatedSeries
                     }
+                    seriesLabel={t(
+                      "series"
+                    )}
+                    durationLabel={t(
+                      "episodesInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
 
                   <SeriesSection
-                    eyebrow="Oggi"
-                    title="📡 In onda oggi"
-                    description="Le serie con nuovi episodi trasmessi oggi."
+                    eyebrow={t(
+                      "airingTodayEyebrow"
+                    )}
+                    title={t(
+                      "airingTodayTitle"
+                    )}
+                    description={t(
+                      "airingTodayDescription"
+                    )}
                     series={
                       airingTodaySeries
                     }
+                    seriesLabel={t(
+                      "series"
+                    )}
+                    durationLabel={t(
+                      "episodesInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
                 </>
               )}
@@ -701,18 +846,19 @@ export default async function SeriesPage({
               >
                 <div className="mb-7">
                   <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                    Esplora
+                    {tc("explore")}
                   </p>
 
                   <h2 className="mt-2 text-3xl font-black md:text-4xl">
-                    Filtra il catalogo
+                    {tc(
+                      "filterCatalog"
+                    )}
                   </h2>
 
                   <p className="mt-3 max-w-3xl text-zinc-400">
-                    Restringi la selezione per
-                    genere, intervallo di anni,
-                    attore, voto minimo oppure
-                    cambia l&apos;ordinamento.
+                    {tc(
+                      "filterDescription"
+                    )}
                   </p>
                 </div>
 
@@ -729,7 +875,7 @@ export default async function SeriesPage({
                         htmlFor="genre"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Genere
+                        {tc("genre")}
                       </label>
 
                       <select
@@ -745,7 +891,9 @@ export default async function SeriesPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Tutti i generi
+                          {tc(
+                            "allGenres"
+                          )}
                         </option>
 
                         {genres.map(
@@ -774,7 +922,7 @@ export default async function SeriesPage({
                         htmlFor="yearFrom"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Dal
+                        {tc("from")}
                       </label>
 
                       <select
@@ -790,7 +938,9 @@ export default async function SeriesPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Qualsiasi anno
+                          {tc(
+                            "anyYear"
+                          )}
                         </option>
 
                         {years.map(
@@ -819,7 +969,7 @@ export default async function SeriesPage({
                         htmlFor="yearTo"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Al
+                        {tc("to")}
                       </label>
 
                       <select
@@ -835,7 +985,9 @@ export default async function SeriesPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Qualsiasi anno
+                          {tc(
+                            "anyYear"
+                          )}
                         </option>
 
                         {years.map(
@@ -864,7 +1016,7 @@ export default async function SeriesPage({
                         htmlFor="actor"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Attore
+                        {tc("actor")}
                       </label>
 
                       <input
@@ -874,7 +1026,9 @@ export default async function SeriesPage({
                         defaultValue={
                           actorQuery
                         }
-                        placeholder="Es. Pedro Pascal"
+                        placeholder={t(
+                          "actorExample"
+                        )}
                         autoComplete="off"
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED]"
                       />
@@ -887,7 +1041,9 @@ export default async function SeriesPage({
                         htmlFor="vote"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Voto minimo
+                        {tc(
+                          "minimumRating"
+                        )}
                       </label>
 
                       <select
@@ -904,23 +1060,49 @@ export default async function SeriesPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Qualsiasi voto
+                          {tc(
+                            "anyRating"
+                          )}
                         </option>
 
                         <option value="8">
-                          ⭐ 8 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                8,
+                            }
+                          )}
                         </option>
 
                         <option value="7">
-                          ⭐ 7 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                7,
+                            }
+                          )}
                         </option>
 
                         <option value="6">
-                          ⭐ 6 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                6,
+                            }
+                          )}
                         </option>
 
                         <option value="5">
-                          ⭐ 5 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                5,
+                            }
+                          )}
                         </option>
                       </select>
                     </div>
@@ -932,7 +1114,7 @@ export default async function SeriesPage({
                         htmlFor="sort"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Ordina per
+                        {tc("sortBy")}
                       </label>
 
                       <select
@@ -944,27 +1126,39 @@ export default async function SeriesPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="popularity.desc">
-                          Più popolari
+                          {tc(
+                            "mostPopular"
+                          )}
                         </option>
 
                         <option value="vote_average.desc">
-                          Più votate
+                          {t(
+                            "highestRated"
+                          )}
                         </option>
 
                         <option value="first_air_date.desc">
-                          Più recenti
+                          {tc(
+                            "newest"
+                          )}
                         </option>
 
                         <option value="first_air_date.asc">
-                          Più vecchie
+                          {t(
+                            "oldest"
+                          )}
                         </option>
 
                         <option value="name.asc">
-                          Titolo A-Z
+                          {tc(
+                            "titleAZ"
+                          )}
                         </option>
 
                         <option value="name.desc">
-                          Titolo Z-A
+                          {tc(
+                            "titleZA"
+                          )}
                         </option>
                       </select>
                     </div>
@@ -974,9 +1168,9 @@ export default async function SeriesPage({
 
                   {hasInvalidYearRange && (
                     <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-semibold text-red-300">
-                      ⚠️ L&apos;anno iniziale non
-                      può essere successivo
-                      all&apos;anno finale.
+                      {tc(
+                        "invalidYearRangeShort"
+                      )}
                     </div>
                   )}
 
@@ -984,10 +1178,13 @@ export default async function SeriesPage({
 
                   {actorNotFound && (
                     <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm font-semibold text-amber-300">
-                      🎭 Nessun attore trovato
-                      con il nome &quot;
-                      {actorQuery}&quot;.
-                      Controlla il nome e riprova.
+                      {tc(
+                        "actorNotFoundShort",
+                        {
+                          actor:
+                            actorQuery,
+                        }
+                      )}
                     </div>
                   )}
 
@@ -996,7 +1193,9 @@ export default async function SeriesPage({
                       type="submit"
                       className="rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      🎛 Applica filtri
+                      {tc(
+                        "applyFilters"
+                      )}
                     </button>
 
                     {hasActiveFilters && (
@@ -1004,7 +1203,9 @@ export default async function SeriesPage({
                         href="/serie-tv"
                         className="rounded-full border border-zinc-700 bg-zinc-900 px-7 py-3 font-bold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
                       >
-                        Reset filtri
+                        {tc(
+                          "resetFilters"
+                        )}
                       </Link>
                     )}
                   </div>
@@ -1021,25 +1222,33 @@ export default async function SeriesPage({
                   <div>
                     <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#8B5CF6]">
                       {hasActiveFilters
-                        ? "Risultati"
-                        : "Catalogo"}
+                        ? tc(
+                            "results"
+                          )
+                        : tc(
+                            "catalog"
+                          )}
                     </p>
 
                     <h2 className="mt-2 text-3xl font-black md:text-4xl">
                       {hasActiveFilters
-                        ? "Risultati filtrati"
+                        ? tc(
+                            "filteredResults"
+                          )
                         : currentGenre
                           ? currentGenre.name
-                          : "Tutte le serie TV"}
+                          : t(
+                              "allSeries"
+                            )}
                     </h2>
 
                     {hasActiveFilters &&
                       !hasInvalidYearRange &&
                       !actorNotFound && (
                         <p className="mt-3 max-w-2xl text-zinc-400">
-                          Ecco le serie che
-                          corrispondono ai filtri
-                          che hai selezionato.
+                          {t(
+                            "filteredDescription"
+                          )}
                         </p>
                       )}
 
@@ -1057,13 +1266,25 @@ export default async function SeriesPage({
 
                       {yearFrom && (
                         <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-sm text-zinc-300">
-                          📅 Dal {yearFrom}
+                          📅{" "}
+                          {tc(
+                            "fromBadge",
+                            {
+                              year: yearFrom,
+                            }
+                          )}
                         </span>
                       )}
 
                       {yearTo && (
                         <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-sm text-zinc-300">
-                          📅 Al {yearTo}
+                          📅{" "}
+                          {tc(
+                            "toBadge",
+                            {
+                              year: yearTo,
+                            }
+                          )}
                         </span>
                       )}
 
@@ -1100,18 +1321,25 @@ export default async function SeriesPage({
                     !actorNotFound && (
                       <div className="rounded-2xl border border-zinc-800 bg-[#151515] px-5 py-3 text-sm text-zinc-400">
                         <p>
-                          <span className="font-bold text-white">
-                            {totalResults.toLocaleString(
-                              "it-IT"
-                            )}
-                          </span>{" "}
-                          risultati
+                          {tc(
+                            "resultsCount",
+                            {
+                              count:
+                                formattedTotalResults,
+                            }
+                          )}
                         </p>
 
                         <p className="mt-1">
-                          Pagina{" "}
-                          {currentPage} di{" "}
-                          {totalPages}
+                          {tc(
+                            "pageOf",
+                            {
+                              page:
+                                currentPage,
+                              total:
+                                totalPages,
+                            }
+                          )}
                         </p>
                       </div>
                     )}
@@ -1126,20 +1354,24 @@ export default async function SeriesPage({
                     </p>
 
                     <h3 className="mt-5 text-2xl font-bold text-red-200">
-                      Intervallo anni non valido
+                      {tc(
+                        "invalidYearRangeTitle"
+                      )}
                     </h3>
 
                     <p className="mt-3 text-zinc-400">
-                      Hai selezionato un anno
-                      iniziale successivo
-                      all&apos;anno finale.
+                      {tc(
+                        "invalidYearRangeDescription"
+                      )}
                     </p>
 
                     <a
                       href="#filtri"
                       className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      Correggi i filtri
+                      {tc(
+                        "fixFilters"
+                      )}
                     </a>
                   </div>
                 ) : actorNotFound ? (
@@ -1151,22 +1383,28 @@ export default async function SeriesPage({
                     </p>
 
                     <h3 className="mt-5 text-2xl font-bold text-amber-200">
-                      Attore non trovato
+                      {tc(
+                        "actorNotFoundTitle"
+                      )}
                     </h3>
 
                     <p className="mx-auto mt-3 max-w-xl text-zinc-400">
-                      Non abbiamo trovato
-                      &quot;{actorQuery}&quot;
-                      nel database. Prova a
-                      controllare il nome
-                      dell&apos;attore.
+                      {tc(
+                        "actorNotFoundDescription",
+                        {
+                          actor:
+                            actorQuery,
+                        }
+                      )}
                     </p>
 
                     <a
                       href="#filtri"
                       className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      Modifica attore
+                      {tc(
+                        "editActor"
+                      )}
                     </a>
                   </div>
                 ) : catalogSeries.length >
@@ -1183,6 +1421,15 @@ export default async function SeriesPage({
                           series={
                             series
                           }
+                          seriesLabel={t(
+                            "series"
+                          )}
+                          durationLabel={t(
+                            "episodesInDetails"
+                          )}
+                          notAvailableLabel={tc(
+                            "notAvailable"
+                          )}
                         />
                       )
                     )}
@@ -1196,19 +1443,24 @@ export default async function SeriesPage({
                     </p>
 
                     <h3 className="mt-5 text-2xl font-bold">
-                      Nessuna serie trovata
+                      {t(
+                        "noSeriesFound"
+                      )}
                     </h3>
 
                     <p className="mt-3 text-zinc-400">
-                      Prova a modificare uno
-                      dei filtri selezionati.
+                      {tc(
+                        "noResultsDescription"
+                      )}
                     </p>
 
                     <Link
                       href="/serie-tv"
                       className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      Mostra tutto
+                      {tc(
+                        "showAll"
+                      )}
                     </Link>
                   </div>
                 )}
@@ -1229,7 +1481,9 @@ export default async function SeriesPage({
                           )}
                           className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3 font-bold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
                         >
-                          ← Pagina precedente
+                          {tc(
+                            "previousPage"
+                          )}
                         </Link>
                       )}
 
@@ -1247,7 +1501,9 @@ export default async function SeriesPage({
                           )}
                           className="rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                         >
-                          Pagina successiva →
+                          {tc(
+                            "nextPage"
+                          )}
                         </Link>
                       )}
                     </div>
@@ -1270,11 +1526,17 @@ function SeriesSection({
   title,
   description,
   series,
+  seriesLabel,
+  durationLabel,
+  notAvailableLabel,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   series: TMDBSeries[];
+  seriesLabel: string;
+  durationLabel: string;
+  notAvailableLabel: string;
 }) {
   if (series.length === 0) {
     return null;
@@ -1301,6 +1563,15 @@ function SeriesSection({
           <SeriesCard
             key={item.id}
             series={item}
+            seriesLabel={
+              seriesLabel
+            }
+            durationLabel={
+              durationLabel
+            }
+            notAvailableLabel={
+              notAvailableLabel
+            }
           />
         ))}
       </div>
@@ -1314,8 +1585,14 @@ function SeriesSection({
 
 function SeriesCard({
   series,
+  seriesLabel,
+  durationLabel,
+  notAvailableLabel,
 }: {
   series: TMDBSeries;
+  seriesLabel: string;
+  durationLabel: string;
+  notAvailableLabel: string;
 }) {
   const year =
     series.first_air_date
@@ -1323,14 +1600,14 @@ function SeriesCard({
           0,
           4
         )
-      : "N/D";
+      : notAvailableLabel;
 
   const rating =
     series.vote_average > 0
       ? `⭐ ${series.vote_average.toFixed(
           1
         )}`
-      : "N.D.";
+      : notAvailableLabel;
 
   return (
     <MovieCard
@@ -1342,9 +1619,9 @@ function SeriesCard({
         series.poster_path
       )}
       mediaType="tv"
-      tag="Serie TV"
-      genre="Serie TV"
-      duration="Episodi nella scheda"
+      tag={seriesLabel}
+      genre={seriesLabel}
+      duration={durationLabel}
     />
   );
 }
@@ -1382,12 +1659,14 @@ function getSeriesYear(
 
 function sortSeriesLocally(
   series: TMDBSeries[],
-  sort: SeriesSortOption
+  sort: SeriesSortOption,
+  locale: string
 ) {
   const cloned = [...series];
 
   if (
-    sort === "vote_average.desc"
+    sort ===
+    "vote_average.desc"
   ) {
     return cloned.sort(
       (a, b) =>
@@ -1431,7 +1710,7 @@ function sortSeriesLocally(
       (a, b) =>
         a.name.localeCompare(
           b.name,
-          "it"
+          locale
         )
     );
   }
@@ -1441,7 +1720,7 @@ function sortSeriesLocally(
       (a, b) =>
         b.name.localeCompare(
           a.name,
-          "it"
+          locale
         )
     );
   }
@@ -1470,42 +1749,4 @@ function getDateValue(
   return Number.isFinite(value)
     ? value
     : 0;
-}
-
-/*
- * ETICHETTA ORDINAMENTO
- */
-
-function getSortLabel(
-  sort: SeriesSortOption
-) {
-  if (
-    sort === "vote_average.desc"
-  ) {
-    return "Più votate";
-  }
-
-  if (
-    sort ===
-    "first_air_date.desc"
-  ) {
-    return "Più recenti";
-  }
-
-  if (
-    sort ===
-    "first_air_date.asc"
-  ) {
-    return "Più vecchie";
-  }
-
-  if (sort === "name.asc") {
-    return "Titolo A-Z";
-  }
-
-  if (sort === "name.desc") {
-    return "Titolo Z-A";
-  }
-
-  return "Più popolari";
 }

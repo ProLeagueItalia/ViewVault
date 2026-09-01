@@ -1,4 +1,8 @@
 import Link from "next/link";
+import {
+  getLocale,
+  getTranslations,
+} from "next-intl/server";
 
 import AppHeader from "../../components/AppHeader";
 import BackButton from "../../components/BackButton";
@@ -52,7 +56,18 @@ const validSortOptions: MovieSortOption[] = [
 export default async function FilmPage({
   searchParams,
 }: FilmPageProps) {
-  const params = await Promise.resolve(searchParams);
+  const t = await getTranslations(
+    "MoviesPage"
+  );
+
+  const tc = await getTranslations(
+    "Catalog"
+  );
+
+  const locale = await getLocale();
+
+  const params =
+    await Promise.resolve(searchParams);
 
   /*
    * PAGINA
@@ -138,7 +153,9 @@ export default async function FilmPage({
     params.actor?.trim() ?? "";
 
   let actorId: number | undefined;
-  let actorDisplayName = actorQuery;
+  let actorDisplayName =
+    actorQuery;
+
   let actorNotFound = false;
 
   /*
@@ -211,7 +228,9 @@ export default async function FilmPage({
 
     if (actorQuery) {
       const actor =
-        await findActorByName(actorQuery);
+        await findActorByName(
+          actorQuery
+        );
 
       if (actor) {
         actorId = actor.id;
@@ -226,7 +245,8 @@ export default async function FilmPage({
      */
 
     if (hasInvalidYearRange) {
-      genres = await getMovieGenres();
+      genres =
+        await getMovieGenres();
     }
 
     /*
@@ -234,7 +254,8 @@ export default async function FilmPage({
      */
 
     else if (actorNotFound) {
-      genres = await getMovieGenres();
+      genres =
+        await getMovieGenres();
     }
 
     /*
@@ -300,7 +321,10 @@ export default async function FilmPage({
       ]);
 
       trendingMovies =
-        trendingResponse.slice(0, 8);
+        trendingResponse.slice(
+          0,
+          8
+        );
 
       popularMovies =
         popularResponse.results.slice(
@@ -315,7 +339,10 @@ export default async function FilmPage({
         );
 
       nowPlayingMovies =
-        nowPlayingResponse.slice(0, 8);
+        nowPlayingResponse.slice(
+          0,
+          8
+        );
 
       catalogMovies =
         catalogResponse.results;
@@ -392,7 +419,8 @@ export default async function FilmPage({
   }
 
   if (
-    sortBy !== "popularity.desc"
+    sortBy !==
+    "popularity.desc"
   ) {
     paginationBaseParams.set(
       "sort",
@@ -432,37 +460,88 @@ export default async function FilmPage({
       currentYear - index
   );
 
+  /*
+   * ETICHETTA ORDINAMENTO
+   */
+
+  function getSortLabel(
+    sort: MovieSortOption
+  ) {
+    if (
+      sort ===
+      "vote_average.desc"
+    ) {
+      return tc(
+        "highestRated"
+      );
+    }
+
+    if (
+      sort ===
+      "primary_release_date.desc"
+    ) {
+      return tc("newest");
+    }
+
+    if (
+      sort ===
+      "primary_release_date.asc"
+    ) {
+      return tc("oldest");
+    }
+
+    if (
+      sort === "title.asc"
+    ) {
+      return tc("titleAZ");
+    }
+
+    if (
+      sort === "title.desc"
+    ) {
+      return tc("titleZA");
+    }
+
+    return tc("mostPopular");
+  }
+
+  const formattedTotalResults =
+    new Intl.NumberFormat(
+      locale
+    ).format(totalResults);
+
   return (
     <>
-    <AppHeader />
+      <AppHeader />
 
-    <main className="min-h-screen bg-[#0D0D0D] pb-24 text-white">
-      {/* PULSANTE INDIETRO */}
-      <div className="mx-auto max-w-7xl px-6 pt-6">
-        <BackButton fallbackHref="/" />
-      </div>
+      <main className="min-h-screen bg-[#0D0D0D] pb-24 text-white">
+        {/* PULSANTE INDIETRO */}
+        <div className="mx-auto max-w-7xl px-6 pt-6">
+          <BackButton fallbackHref="/" />
+        </div>
 
-      {/* HERO */}
+        {/* HERO */}
 
         <section className="border-b border-zinc-800 bg-gradient-to-b from-[#17101F] via-[#0D0D0D] to-[#0D0D0D]">
           <div className="mx-auto max-w-7xl px-6 pb-16 pt-16">
             <div className="max-w-3xl">
               <span className="inline-flex rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm font-bold text-violet-300">
-                🎬 Catalogo Film
+                🎬 {t("catalogLabel")}
               </span>
 
               <h1 className="mt-6 text-5xl font-black tracking-tight md:text-7xl">
-                Esplora il mondo del{" "}
+                {t("heroPrefix")}{" "}
                 <span className="text-[#7C3AED]">
-                  cinema
+                  {t(
+                    "heroHighlight"
+                  )}
                 </span>
               </h1>
 
               <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
-                Sfoglia film di tendenza, titoli
-                popolari, grandi classici e nuove
-                uscite. Filtra il catalogo e
-                costruisci il tuo Vault personale.
+                {t(
+                  "heroDescription"
+                )}
               </p>
             </div>
 
@@ -478,14 +557,18 @@ export default async function FilmPage({
                   htmlFor="film-search"
                   className="sr-only"
                 >
-                  Cerca un film
+                  {t(
+                    "searchLabel"
+                  )}
                 </label>
 
                 <input
                   id="film-search"
                   name="q"
                   type="search"
-                  placeholder="🔎 Cerca un film..."
+                  placeholder={t(
+                    "searchPlaceholder"
+                  )}
                   autoComplete="off"
                   className="min-w-0 flex-1 rounded-full border border-zinc-700 bg-zinc-900/90 px-6 py-4 text-base text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-violet-500/10"
                 />
@@ -494,7 +577,7 @@ export default async function FilmPage({
                   type="submit"
                   className="rounded-full bg-[#7C3AED] px-8 py-4 font-bold text-white transition hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.35)]"
                 >
-                  Cerca
+                  {tc("search")}
                 </button>
               </form>
 
@@ -502,7 +585,7 @@ export default async function FilmPage({
                 href="#filtri"
                 className="inline-flex items-center justify-center rounded-full border border-[#7C3AED] bg-[#7C3AED]/10 px-8 py-4 font-bold text-[#C4B5FD] transition hover:bg-[#7C3AED] hover:text-white"
               >
-                🎛 Filtri
+                🎛 {tc("filters")}
               </a>
             </div>
           </div>
@@ -516,13 +599,15 @@ export default async function FilmPage({
               </p>
 
               <h2 className="mt-5 text-2xl font-bold text-red-200">
-                Catalogo momentaneamente non
-                disponibile
+                {t(
+                  "unavailableTitle"
+                )}
               </h2>
 
               <p className="mt-3 text-zinc-400">
-                Non è stato possibile recuperare i
-                film da TMDB. Riprova tra poco.
+                {t(
+                  "unavailableDescription"
+                )}
               </p>
             </section>
           ) : (
@@ -532,39 +617,99 @@ export default async function FilmPage({
               {!hasActiveFilters && (
                 <>
                   <MovieSection
-                    eyebrow="Il momento"
-                    title="🔥 Film di tendenza"
-                    description="I film che stanno attirando più attenzione questa settimana."
+                    eyebrow={t(
+                      "trendingEyebrow"
+                    )}
+                    title={t(
+                      "trendingTitle"
+                    )}
+                    description={t(
+                      "trendingDescription"
+                    )}
                     movies={
                       trendingMovies
                     }
+                    movieLabel={t(
+                      "movie"
+                    )}
+                    durationLabel={t(
+                      "durationInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
 
                   <MovieSection
-                    eyebrow="Scelti dal pubblico"
-                    title="🍿 Film popolari"
-                    description="I titoli più esplorati e popolari del momento."
+                    eyebrow={t(
+                      "popularEyebrow"
+                    )}
+                    title={t(
+                      "popularTitle"
+                    )}
+                    description={t(
+                      "popularDescription"
+                    )}
                     movies={
                       popularMovies
                     }
+                    movieLabel={t(
+                      "movie"
+                    )}
+                    durationLabel={t(
+                      "durationInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
 
                   <MovieSection
-                    eyebrow="Da non perdere"
-                    title="⭐ Più votati"
-                    description="Una selezione dei film con le valutazioni più alte."
+                    eyebrow={t(
+                      "topRatedEyebrow"
+                    )}
+                    title={t(
+                      "topRatedTitle"
+                    )}
+                    description={t(
+                      "topRatedDescription"
+                    )}
                     movies={
                       topRatedMovies
                     }
+                    movieLabel={t(
+                      "movie"
+                    )}
+                    durationLabel={t(
+                      "durationInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
 
                   <MovieSection
-                    eyebrow="Grande schermo"
-                    title="🎟️ Ora al cinema"
-                    description="I film attualmente presenti nelle sale."
+                    eyebrow={t(
+                      "nowPlayingEyebrow"
+                    )}
+                    title={t(
+                      "nowPlayingTitle"
+                    )}
+                    description={t(
+                      "nowPlayingDescription"
+                    )}
                     movies={
                       nowPlayingMovies
                     }
+                    movieLabel={t(
+                      "movie"
+                    )}
+                    durationLabel={t(
+                      "durationInDetails"
+                    )}
+                    notAvailableLabel={tc(
+                      "notAvailable"
+                    )}
                   />
                 </>
               )}
@@ -581,18 +726,19 @@ export default async function FilmPage({
               >
                 <div className="mb-7">
                   <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                    Esplora
+                    {tc("explore")}
                   </p>
 
                   <h2 className="mt-2 text-3xl font-black md:text-4xl">
-                    Filtra il catalogo
+                    {tc(
+                      "filterCatalog"
+                    )}
                   </h2>
 
                   <p className="mt-3 max-w-3xl text-zinc-400">
-                    Restringi la selezione per
-                    genere, intervallo di anni,
-                    attore, voto minimo oppure
-                    cambia l&apos;ordinamento.
+                    {tc(
+                      "filterDescription"
+                    )}
                   </p>
                 </div>
 
@@ -609,7 +755,7 @@ export default async function FilmPage({
                         htmlFor="genre"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Genere
+                        {tc("genre")}
                       </label>
 
                       <select
@@ -625,7 +771,9 @@ export default async function FilmPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Tutti i generi
+                          {tc(
+                            "allGenres"
+                          )}
                         </option>
 
                         {genres.map(
@@ -654,7 +802,7 @@ export default async function FilmPage({
                         htmlFor="yearFrom"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Dal
+                        {tc("from")}
                       </label>
 
                       <select
@@ -670,7 +818,9 @@ export default async function FilmPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Qualsiasi anno
+                          {tc(
+                            "anyYear"
+                          )}
                         </option>
 
                         {years.map(
@@ -699,7 +849,7 @@ export default async function FilmPage({
                         htmlFor="yearTo"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Al
+                        {tc("to")}
                       </label>
 
                       <select
@@ -715,7 +865,9 @@ export default async function FilmPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Qualsiasi anno
+                          {tc(
+                            "anyYear"
+                          )}
                         </option>
 
                         {years.map(
@@ -744,7 +896,7 @@ export default async function FilmPage({
                         htmlFor="actor"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Attore
+                        {tc("actor")}
                       </label>
 
                       <input
@@ -754,7 +906,9 @@ export default async function FilmPage({
                         defaultValue={
                           actorQuery
                         }
-                        placeholder="Es. Tom Hanks"
+                        placeholder={tc(
+                          "actorExample"
+                        )}
                         autoComplete="off"
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED]"
                       />
@@ -767,7 +921,9 @@ export default async function FilmPage({
                         htmlFor="vote"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Voto minimo
+                        {tc(
+                          "minimumRating"
+                        )}
                       </label>
 
                       <select
@@ -784,23 +940,49 @@ export default async function FilmPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="">
-                          Qualsiasi voto
+                          {tc(
+                            "anyRating"
+                          )}
                         </option>
 
                         <option value="8">
-                          ⭐ 8 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                8,
+                            }
+                          )}
                         </option>
 
                         <option value="7">
-                          ⭐ 7 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                7,
+                            }
+                          )}
                         </option>
 
                         <option value="6">
-                          ⭐ 6 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                6,
+                            }
+                          )}
                         </option>
 
                         <option value="5">
-                          ⭐ 5 o superiore
+                          {tc(
+                            "ratingOrHigher",
+                            {
+                              rating:
+                                5,
+                            }
+                          )}
                         </option>
                       </select>
                     </div>
@@ -812,7 +994,7 @@ export default async function FilmPage({
                         htmlFor="sort"
                         className="mb-2 block text-sm font-bold text-zinc-300"
                       >
-                        Ordina per
+                        {tc("sortBy")}
                       </label>
 
                       <select
@@ -824,27 +1006,39 @@ export default async function FilmPage({
                         className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-white outline-none transition focus:border-[#7C3AED]"
                       >
                         <option value="popularity.desc">
-                          Più popolari
+                          {tc(
+                            "mostPopular"
+                          )}
                         </option>
 
                         <option value="vote_average.desc">
-                          Più votati
+                          {tc(
+                            "highestRated"
+                          )}
                         </option>
 
                         <option value="primary_release_date.desc">
-                          Più recenti
+                          {tc(
+                            "newest"
+                          )}
                         </option>
 
                         <option value="primary_release_date.asc">
-                          Più vecchi
+                          {tc(
+                            "oldest"
+                          )}
                         </option>
 
                         <option value="title.asc">
-                          Titolo A-Z
+                          {tc(
+                            "titleAZ"
+                          )}
                         </option>
 
                         <option value="title.desc">
-                          Titolo Z-A
+                          {tc(
+                            "titleZA"
+                          )}
                         </option>
                       </select>
                     </div>
@@ -854,9 +1048,9 @@ export default async function FilmPage({
 
                   {hasInvalidYearRange && (
                     <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-semibold text-red-300">
-                      ⚠️ L&apos;anno iniziale non
-                      può essere successivo
-                      all&apos;anno finale.
+                      {tc(
+                        "invalidYearRangeShort"
+                      )}
                     </div>
                   )}
 
@@ -864,10 +1058,13 @@ export default async function FilmPage({
 
                   {actorNotFound && (
                     <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm font-semibold text-amber-300">
-                      🎭 Nessun attore trovato
-                      con il nome &quot;
-                      {actorQuery}&quot;.
-                      Controlla il nome e riprova.
+                      {tc(
+                        "actorNotFoundShort",
+                        {
+                          actor:
+                            actorQuery,
+                        }
+                      )}
                     </div>
                   )}
 
@@ -876,7 +1073,9 @@ export default async function FilmPage({
                       type="submit"
                       className="rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      🎛 Applica filtri
+                      {tc(
+                        "applyFilters"
+                      )}
                     </button>
 
                     {hasActiveFilters && (
@@ -884,7 +1083,9 @@ export default async function FilmPage({
                         href="/film"
                         className="rounded-full border border-zinc-700 bg-zinc-900 px-7 py-3 font-bold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
                       >
-                        Reset filtri
+                        {tc(
+                          "resetFilters"
+                        )}
                       </Link>
                     )}
                   </div>
@@ -901,25 +1102,33 @@ export default async function FilmPage({
                   <div>
                     <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#8B5CF6]">
                       {hasActiveFilters
-                        ? "Risultati"
-                        : "Catalogo"}
+                        ? tc(
+                            "results"
+                          )
+                        : tc(
+                            "catalog"
+                          )}
                     </p>
 
                     <h2 className="mt-2 text-3xl font-black md:text-4xl">
                       {hasActiveFilters
-                        ? "Risultati filtrati"
+                        ? tc(
+                            "filteredResults"
+                          )
                         : currentGenre
                           ? currentGenre.name
-                          : "Tutti i film"}
+                          : t(
+                              "allMovies"
+                            )}
                     </h2>
 
                     {hasActiveFilters &&
                       !hasInvalidYearRange &&
                       !actorNotFound && (
                         <p className="mt-3 max-w-2xl text-zinc-400">
-                          Ecco i film che
-                          corrispondono ai filtri
-                          che hai selezionato.
+                          {t(
+                            "filteredDescription"
+                          )}
                         </p>
                       )}
 
@@ -937,13 +1146,25 @@ export default async function FilmPage({
 
                       {yearFrom && (
                         <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-sm text-zinc-300">
-                          📅 Dal {yearFrom}
+                          📅{" "}
+                          {tc(
+                            "fromBadge",
+                            {
+                              year: yearFrom,
+                            }
+                          )}
                         </span>
                       )}
 
                       {yearTo && (
                         <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-sm text-zinc-300">
-                          📅 Al {yearTo}
+                          📅{" "}
+                          {tc(
+                            "toBadge",
+                            {
+                              year: yearTo,
+                            }
+                          )}
                         </span>
                       )}
 
@@ -980,18 +1201,25 @@ export default async function FilmPage({
                     !actorNotFound && (
                       <div className="rounded-2xl border border-zinc-800 bg-[#151515] px-5 py-3 text-sm text-zinc-400">
                         <p>
-                          <span className="font-bold text-white">
-                            {totalResults.toLocaleString(
-                              "it-IT"
-                            )}
-                          </span>{" "}
-                          risultati
+                          {tc(
+                            "resultsCount",
+                            {
+                              count:
+                                formattedTotalResults,
+                            }
+                          )}
                         </p>
 
                         <p className="mt-1">
-                          Pagina{" "}
-                          {currentPage} di{" "}
-                          {totalPages}
+                          {tc(
+                            "pageOf",
+                            {
+                              page:
+                                currentPage,
+                              total:
+                                totalPages,
+                            }
+                          )}
                         </p>
                       </div>
                     )}
@@ -1006,20 +1234,24 @@ export default async function FilmPage({
                     </p>
 
                     <h3 className="mt-5 text-2xl font-bold text-red-200">
-                      Intervallo anni non valido
+                      {tc(
+                        "invalidYearRangeTitle"
+                      )}
                     </h3>
 
                     <p className="mt-3 text-zinc-400">
-                      Hai selezionato un anno
-                      iniziale successivo
-                      all&apos;anno finale.
+                      {tc(
+                        "invalidYearRangeDescription"
+                      )}
                     </p>
 
                     <a
                       href="#filtri"
                       className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      Correggi i filtri
+                      {tc(
+                        "fixFilters"
+                      )}
                     </a>
                   </div>
                 ) : actorNotFound ? (
@@ -1031,22 +1263,28 @@ export default async function FilmPage({
                     </p>
 
                     <h3 className="mt-5 text-2xl font-bold text-amber-200">
-                      Attore non trovato
+                      {tc(
+                        "actorNotFoundTitle"
+                      )}
                     </h3>
 
                     <p className="mx-auto mt-3 max-w-xl text-zinc-400">
-                      Non abbiamo trovato
-                      &quot;{actorQuery}&quot;
-                      nel database. Prova a
-                      controllare il nome
-                      dell&apos;attore.
+                      {tc(
+                        "actorNotFoundDescription",
+                        {
+                          actor:
+                            actorQuery,
+                        }
+                      )}
                     </p>
 
                     <a
                       href="#filtri"
                       className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      Modifica attore
+                      {tc(
+                        "editActor"
+                      )}
                     </a>
                   </div>
                 ) : catalogMovies.length >
@@ -1063,6 +1301,15 @@ export default async function FilmPage({
                           movie={
                             movie
                           }
+                          movieLabel={t(
+                            "movie"
+                          )}
+                          durationLabel={t(
+                            "durationInDetails"
+                          )}
+                          notAvailableLabel={tc(
+                            "notAvailable"
+                          )}
                         />
                       )
                     )}
@@ -1076,19 +1323,24 @@ export default async function FilmPage({
                     </p>
 
                     <h3 className="mt-5 text-2xl font-bold">
-                      Nessun film trovato
+                      {t(
+                        "noMoviesFound"
+                      )}
                     </h3>
 
                     <p className="mt-3 text-zinc-400">
-                      Prova a modificare uno
-                      dei filtri selezionati.
+                      {tc(
+                        "noResultsDescription"
+                      )}
                     </p>
 
                     <Link
                       href="/film"
                       className="mt-6 inline-block rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                     >
-                      Mostra tutto
+                      {tc(
+                        "showAll"
+                      )}
                     </Link>
                   </div>
                 )}
@@ -1109,7 +1361,9 @@ export default async function FilmPage({
                           )}
                           className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3 font-bold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
                         >
-                          ← Pagina precedente
+                          {tc(
+                            "previousPage"
+                          )}
                         </Link>
                       )}
 
@@ -1127,7 +1381,9 @@ export default async function FilmPage({
                           )}
                           className="rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
                         >
-                          Pagina successiva →
+                          {tc(
+                            "nextPage"
+                          )}
                         </Link>
                       )}
                     </div>
@@ -1150,11 +1406,17 @@ function MovieSection({
   title,
   description,
   movies,
+  movieLabel,
+  durationLabel,
+  notAvailableLabel,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   movies: TMDBMovie[];
+  movieLabel: string;
+  durationLabel: string;
+  notAvailableLabel: string;
 }) {
   if (movies.length === 0) {
     return null;
@@ -1181,6 +1443,15 @@ function MovieSection({
           <FilmCard
             key={movie.id}
             movie={movie}
+            movieLabel={
+              movieLabel
+            }
+            durationLabel={
+              durationLabel
+            }
+            notAvailableLabel={
+              notAvailableLabel
+            }
           />
         ))}
       </div>
@@ -1194,8 +1465,14 @@ function MovieSection({
 
 function FilmCard({
   movie,
+  movieLabel,
+  durationLabel,
+  notAvailableLabel,
 }: {
   movie: TMDBMovie;
+  movieLabel: string;
+  durationLabel: string;
+  notAvailableLabel: string;
 }) {
   const year =
     movie.release_date
@@ -1203,14 +1480,14 @@ function FilmCard({
           0,
           4
         )
-      : "N/D";
+      : notAvailableLabel;
 
   const rating =
     movie.vote_average > 0
       ? `⭐ ${movie.vote_average.toFixed(
           1
         )}`
-      : "N.D.";
+      : notAvailableLabel;
 
   return (
     <MovieCard
@@ -1222,47 +1499,9 @@ function FilmCard({
         movie.poster_path
       )}
       mediaType="movie"
-      tag="Film"
-      genre="Film"
-      duration="Durata nella scheda"
+      tag={movieLabel}
+      genre={movieLabel}
+      duration={durationLabel}
     />
   );
-}
-
-/*
- * ETICHETTA ORDINAMENTO
- */
-
-function getSortLabel(
-  sort: MovieSortOption
-) {
-  if (
-    sort === "vote_average.desc"
-  ) {
-    return "Più votati";
-  }
-
-  if (
-    sort ===
-    "primary_release_date.desc"
-  ) {
-    return "Più recenti";
-  }
-
-  if (
-    sort ===
-    "primary_release_date.asc"
-  ) {
-    return "Più vecchi";
-  }
-
-  if (sort === "title.asc") {
-    return "Titolo A-Z";
-  }
-
-  if (sort === "title.desc") {
-    return "Titolo Z-A";
-  }
-
-  return "Più popolari";
 }

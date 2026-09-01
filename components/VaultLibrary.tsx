@@ -7,6 +7,10 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  useLocale,
+  useTranslations,
+} from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 import VaultCardActions from "./VaultCardActions";
@@ -56,6 +60,9 @@ type VaultLibraryProps = {
 export default function VaultLibrary({
   items,
 }: VaultLibraryProps) {
+  const t = useTranslations("Vault");
+  const locale = useLocale();
+
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
 
@@ -71,11 +78,13 @@ export default function VaultLibrary({
     useState<VaultMediaItem[]>(items);
 
   const [query, setQuery] = useState("");
+
   const [activeFilter, setActiveFilter] =
     useState<FilterType>(urlFilter);
 
   const [mediaTypeFilter, setMediaTypeFilter] =
     useState<"movie" | "tv" | null>(urlMediaType);
+
   const [sortBy, setSortBy] =
     useState<SortType>("recent");
 
@@ -138,8 +147,9 @@ export default function VaultLibrary({
 
     if (userError || !user) {
       setFavoriteMessage(
-        "Effettua il login per gestire i Preferiti."
+        t("loginToManageFavorites")
       );
+
       setSavingFavoriteVaultId(null);
       return;
     }
@@ -166,8 +176,9 @@ export default function VaultLibrary({
       );
 
       setFavoriteMessage(
-        "Non è stato possibile aggiornare i Preferiti."
+        t("favoriteUpdateError")
       );
+
       setSavingFavoriteVaultId(null);
       return;
     }
@@ -185,8 +196,8 @@ export default function VaultLibrary({
 
     setFavoriteMessage(
       newValue
-        ? "Contenuto aggiunto ai Preferiti."
-        : "Contenuto rimosso dai Preferiti."
+        ? t("addedToFavorites")
+        : t("removedFromFavorites")
     );
 
     setSavingFavoriteVaultId(null);
@@ -264,14 +275,14 @@ export default function VaultLibrary({
       if (sortBy === "title_asc") {
         return first.title.localeCompare(
           second.title,
-          "it"
+          locale
         );
       }
 
       if (sortBy === "title_desc") {
         return second.title.localeCompare(
           first.title,
-          "it"
+          locale
         );
       }
 
@@ -302,6 +313,7 @@ export default function VaultLibrary({
   }, [
     activeFilter,
     libraryItems,
+    locale,
     mediaTypeFilter,
     query,
     sortBy,
@@ -356,70 +368,106 @@ export default function VaultLibrary({
   }[] = [
     {
       value: "all",
-      label: "Tutti",
+      label: t("all"),
       count: libraryItems.length,
     },
     {
       value: "movie",
-      label: "Film",
+      label: t("movies"),
       count: filmCount,
     },
     {
       value: "tv",
-      label: "Serie TV",
+      label: t("series"),
       count: seriesCount,
     },
     {
       value: "in_progress",
-      label: "In corso",
+      label: t("inProgress"),
       count: inProgressCount,
     },
     {
       value: "watched",
-      label: "Completati",
+      label: t("completed"),
       count: watchedCount,
     },
     {
       value: "watchlist",
-      label: "Da vedere",
+      label: t("watchlist"),
       count: watchlistCount,
     },
     {
       value: "favorites",
-      label: "Preferiti",
+      label: t("favorites"),
       count: favoritesCount,
     },
   ];
+
+  function getTranslatedFilterTitle() {
+    if (activeFilter === "movie") {
+      return t("filterMovies");
+    }
+
+    if (activeFilter === "tv") {
+      return t("filterSeries");
+    }
+
+    if (activeFilter === "in_progress") {
+      return t("filterSeriesInProgress");
+    }
+
+    if (activeFilter === "watched") {
+      if (mediaTypeFilter === "movie") {
+        return t("filterWatchedMovies");
+      }
+
+      if (mediaTypeFilter === "tv") {
+        return t("filterCompletedSeries");
+      }
+
+      return t("filterCompletedContents");
+    }
+
+    if (activeFilter === "watchlist") {
+      return t("filterWatchlist");
+    }
+
+    if (activeFilter === "favorites") {
+      return t("filterFavorites");
+    }
+
+    return t("filterAllVault");
+  }
 
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
-          label="Contenuti"
+          label={t("contents")}
           value={libraryItems.length}
           icon="🎞️"
         />
 
         <StatCard
-          label="Film"
+          label={t("movies")}
           value={filmCount}
           icon="🎬"
         />
 
         <StatCard
-          label="Serie TV"
+          label={t("series")}
           value={seriesCount}
           icon="📺"
         />
 
         <StatCard
-          label="In corso"
+          label={t("inProgress")}
           value={inProgressCount}
           icon="🕒"
         />
 
         <StatCard
-          label="Completati"
+          label={t("completed")}
           value={watchedCount}
           icon="✅"
         />
@@ -434,7 +482,7 @@ export default function VaultLibrary({
             onChange={(event) =>
               setQuery(event.target.value)
             }
-            placeholder="🔎 Cerca nel tuo Vault..."
+            placeholder={t("searchVault")}
             className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED]"
           />
 
@@ -449,23 +497,23 @@ export default function VaultLibrary({
             className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-white outline-none transition focus:border-[#7C3AED]"
           >
             <option value="recent">
-              Ultimi aggiunti
+              {t("sortRecentlyAdded")}
             </option>
 
             <option value="title_asc">
-              Titolo A-Z
+              {t("sortTitleAsc")}
             </option>
 
             <option value="title_desc">
-              Titolo Z-A
+              {t("sortTitleDesc")}
             </option>
 
             <option value="rating_desc">
-              Voto più alto
+              {t("sortHighestRating")}
             </option>
 
             <option value="year_desc">
-              Più recenti
+              {t("sortNewest")}
             </option>
           </select>
         </div>
@@ -509,19 +557,22 @@ export default function VaultLibrary({
       <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-            Libreria personale
+            {t("personalLibrary")}
           </p>
 
           <h2 className="mt-1 text-2xl font-bold">
-            {getFilterTitle(activeFilter, mediaTypeFilter)}
+            {getTranslatedFilterTitle()}
           </h2>
         </div>
 
         <p className="text-sm text-zinc-400">
-          {filteredItems.length}{" "}
           {filteredItems.length === 1
-            ? "contenuto trovato"
-            : "contenuti trovati"}
+            ? t("oneResult", {
+                count: filteredItems.length,
+              })
+            : t("multipleResults", {
+                count: filteredItems.length,
+              })}
         </p>
       </div>
 
@@ -571,7 +622,7 @@ export default function VaultLibrary({
           <p className="text-4xl">🗂️</p>
 
           <h3 className="mt-5 text-2xl font-bold">
-            Nessun contenuto trovato
+            {t("noContentFound")}
           </h3>
 
           <button
@@ -583,7 +634,7 @@ export default function VaultLibrary({
             }}
             className="mt-6 rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
           >
-            Mostra tutto
+            {t("showAll")}
           </button>
         </section>
       )}
@@ -608,6 +659,8 @@ function VaultCard({
   onRemoved: () => void;
   onWatchCountChange: (newWatchCount: number) => void;
 }) {
+  const t = useTranslations("Vault");
+
   const isSeries = item.mediaType === "tv";
 
   const percentage =
@@ -623,14 +676,19 @@ function VaultCard({
     ? `/serie/${item.tmdbId}`
     : `/film/${item.tmdbId}`;
 
-  let statusLabel = "👀 Da vedere";
-  let statusClass = "bg-[#7C3AED] text-white";
+  let statusLabel = t("watchlistStatus");
+
+  let statusClass =
+    "bg-[#7C3AED] text-white";
 
   if (
     isSeries &&
     item.progressStatus === "in_progress"
   ) {
-    statusLabel = `🕒 In corso · ${percentage}%`;
+    statusLabel = t("inProgressStatus", {
+      percentage,
+    });
+
     statusClass = "bg-amber-500 text-black";
   } else if (
     (isSeries &&
@@ -638,7 +696,7 @@ function VaultCard({
     (!isSeries &&
       item.vaultStatus === "watched")
   ) {
-    statusLabel = "✓ Completato";
+    statusLabel = t("completedStatus");
     statusClass = "bg-green-600 text-white";
   }
 
@@ -656,7 +714,9 @@ function VaultCard({
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
 
             <span className="absolute left-3 top-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white">
-              {isSeries ? "Serie TV" : "Film"}
+              {isSeries
+                ? t("series")
+                : t("movies")}
             </span>
 
             <span className="absolute right-3 top-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-[#F4C542]">
@@ -677,13 +737,13 @@ function VaultCard({
           disabled={favoriteSaving}
           title={
             item.isFavorite
-              ? "Rimuovi dai Preferiti"
-              : "Aggiungi ai Preferiti"
+              ? t("removeFromFavorites")
+              : t("addToFavorites")
           }
           aria-label={
             item.isFavorite
-              ? "Rimuovi dai Preferiti"
-              : "Aggiungi ai Preferiti"
+              ? t("removeFromFavorites")
+              : t("addToFavorites")
           }
           className={`absolute bottom-4 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border text-3xl shadow-xl backdrop-blur-md transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-60 ${
             item.isFavorite
@@ -715,8 +775,12 @@ function VaultCard({
               <div className="mt-4">
                 <div className="flex items-center justify-between text-xs text-zinc-400">
                   <span>
-                    {item.watchedEpisodes} di{" "}
-                    {item.totalEpisodes} episodi
+                    {t("episodeProgress", {
+                      watched:
+                        item.watchedEpisodes,
+                      total:
+                        item.totalEpisodes,
+                    })}
                   </span>
 
                   <span>{percentage}%</span>
@@ -745,12 +809,12 @@ function VaultCard({
           >
             {isSeries &&
             item.progressStatus === "in_progress"
-              ? "Continua"
+              ? t("continue")
               : item.vaultStatus === "watched"
                 ? isSeries
-                  ? "Serie completata"
-                  : "Film completato"
-                : "Apri scheda"}
+                  ? t("seriesCompleted")
+                  : t("movieCompleted")
+                : t("openDetails")}
           </div>
         </div>
       </Link>
@@ -800,45 +864,6 @@ function StatCard({
       </p>
     </article>
   );
-}
-
-function getFilterTitle(
-  filter: FilterType,
-  mediaType: "movie" | "tv" | null
-) {
-  if (filter === "movie") {
-    return "Film";
-  }
-
-  if (filter === "tv") {
-    return "Serie TV";
-  }
-
-  if (filter === "in_progress") {
-    return "Serie in corso";
-  }
-
-  if (filter === "watched") {
-    if (mediaType === "movie") {
-      return "Film visti";
-    }
-
-    if (mediaType === "tv") {
-      return "Serie completate";
-    }
-
-    return "Contenuti completati";
-  }
-
-  if (filter === "watchlist") {
-    return "Da vedere";
-  }
-
-  if (filter === "favorites") {
-    return "Preferiti";
-  }
-
-  return "Tutto il Vault";
 }
 
 function getValidFilter(

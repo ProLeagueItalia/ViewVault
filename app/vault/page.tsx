@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import AppHeader from "../../components/AppHeader";
 import BackButton from "../../components/BackButton";
@@ -59,6 +60,8 @@ type SeriesDetails = {
 };
 
 export default async function VaultPage() {
+  const t = await getTranslations("Vault");
+
   const supabase = await createClient();
 
   const {
@@ -191,15 +194,17 @@ export default async function VaultPage() {
             title: movie.title,
             year: movie.release_date
               ? movie.release_date.slice(0, 4)
-              : "N/D",
+              : t("notAvailable"),
             posterUrl: getPosterUrl(
               movie.poster_path
             ),
             voteAverage:
               movie.vote_average ?? 0,
             runtimeLabel: movie.runtime
-              ? `${movie.runtime} min`
-              : "Durata non disponibile",
+              ? t("minutes", {
+                  minutes: movie.runtime,
+                })
+              : t("durationUnavailable"),
             vaultStatus: vaultItem.status,
             progressStatus: null,
             watchedEpisodes: 0,
@@ -230,15 +235,20 @@ export default async function VaultPage() {
           title: series.name,
           year: series.first_air_date
             ? series.first_air_date.slice(0, 4)
-            : "N/D",
+            : t("notAvailable"),
           posterUrl: getPosterUrl(
             series.poster_path
           ),
           voteAverage:
             series.vote_average ?? 0,
           runtimeLabel: averageRuntime
-            ? `${averageRuntime} min per episodio`
-            : `${series.number_of_episodes ?? 0} episodi`,
+            ? t("minutesPerEpisode", {
+                minutes: averageRuntime,
+              })
+            : t("episodes", {
+                count:
+                  series.number_of_episodes ?? 0,
+              }),
           vaultStatus: vaultItem.status,
           progressStatus:
             progress?.status ?? null,
@@ -276,20 +286,18 @@ export default async function VaultPage() {
           <section className="mb-10 mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-[#8B5CF6]">
-                Archivio personale
+                {t("archiveLabel")}
               </p>
 
               <h1 className="text-4xl font-bold md:text-5xl">
-                Il mio{" "}
+                {t("titlePrefix")}{" "}
                 <span className="text-[#7C3AED]">
-                  Vault
+                  {t("titleHighlight")}
                 </span>
               </h1>
 
               <p className="mt-4 max-w-2xl text-lg text-zinc-400">
-                Film e serie TV riuniti in un unico
-                archivio. Cerca, filtra e riprendi da
-                dove avevi interrotto.
+                {t("description")}
               </p>
             </div>
 
@@ -298,39 +306,45 @@ export default async function VaultPage() {
                 href="/import/tv-time"
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-[#7C3AED]/60 bg-[#7C3AED]/10 px-7 py-3 font-bold text-[#C4B5FD] transition hover:border-[#8B5CF6] hover:bg-[#7C3AED]/20 hover:text-white"
               >
-                <span aria-hidden="true">📥</span>
-                Importa da TV Time
+                <span aria-hidden="true">
+                  📥
+                </span>
+
+                {t("importTvTime")}
               </Link>
 
               <Link
                 href="/ricerca"
                 className="inline-flex items-center justify-center rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9]"
               >
-                + Aggiungi contenuti
+                + {t("addContent")}
               </Link>
             </div>
           </section>
 
           {vaultMediaItems.length > 0 ? (
-            <VaultLibrary items={vaultMediaItems} />
+            <VaultLibrary
+              items={vaultMediaItems}
+            />
           ) : (
             <section className="rounded-3xl border border-dashed border-zinc-700 bg-[#151515] px-6 py-20 text-center">
-              <p className="text-5xl">🎞️</p>
+              <p className="text-5xl">
+                🎞️
+              </p>
 
               <h2 className="mt-5 text-2xl font-bold">
-                Il tuo Vault è ancora vuoto
+                {t("emptyTitle")}
               </h2>
 
               <p className="mx-auto mt-3 max-w-xl text-zinc-400">
-                Cerca un film o una serie TV e aggiungi
-                il primo contenuto alla tua libreria.
+                {t("emptyDescription")}
               </p>
 
               <Link
                 href="/ricerca"
                 className="mt-7 inline-block rounded-full bg-[#7C3AED] px-7 py-3 font-bold transition hover:bg-[#6D28D9]"
               >
-                Cerca contenuti
+                {t("searchContent")}
               </Link>
             </section>
           )}

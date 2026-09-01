@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 
@@ -41,6 +42,7 @@ export default function VaultCardActions({
   onRemoved,
   onWatchCountChange,
 }: VaultCardActionsProps) {
+  const t = useTranslations("Vault");
   const supabase = useMemo(() => createClient(), []);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -60,9 +62,7 @@ export default function VaultCardActions({
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      setMessage(
-        "Effettua il login per modificare il Vault."
-      );
+      setMessage(t("loginToEditVault"));
       setHasError(true);
       return null;
     }
@@ -104,9 +104,7 @@ export default function VaultCardActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile registrare la visione."
-      );
+      setMessage(t("recordWatchError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -117,9 +115,7 @@ export default function VaultCardActions({
     ) as WatchCountResult | null;
 
     if (!result) {
-      setMessage(
-        "Il database non ha restituito il conteggio delle visioni."
-      );
+      setMessage(t("watchCountDatabaseError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -130,8 +126,10 @@ export default function VaultCardActions({
 
     setMessage(
       result.watch_count === 1
-        ? "Film segnato come visto."
-        : `Visione registrata. Visto ×${result.watch_count}.`
+        ? t("movieMarkedWatched")
+        : t("watchRecorded", {
+            count: result.watch_count,
+          })
     );
 
     setHasError(false);
@@ -176,9 +174,7 @@ export default function VaultCardActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile annullare l'ultima visione."
-      );
+      setMessage(t("removeLastWatchError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -189,9 +185,7 @@ export default function VaultCardActions({
     ) as WatchCountResult | null;
 
     if (!result) {
-      setMessage(
-        "Il database non ha restituito il nuovo conteggio."
-      );
+      setMessage(t("newWatchCountDatabaseError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -199,7 +193,7 @@ export default function VaultCardActions({
 
     onWatchCountChange(result.watch_count);
 
-    setMessage("Ultima visione annullata.");
+    setMessage(t("lastWatchRemoved"));
     setHasError(false);
     setIsSaving(false);
   }
@@ -248,9 +242,7 @@ export default function VaultCardActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile aggiornare il film."
-      );
+      setMessage(t("movieUpdateError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -258,7 +250,7 @@ export default function VaultCardActions({
 
     onStatusChange(newStatus);
 
-    setMessage("Film segnato come da vedere.");
+    setMessage(t("movieMarkedWatchlist"));
     setHasError(false);
     setIsSaving(false);
   }
@@ -270,8 +262,8 @@ export default function VaultCardActions({
 
     const confirmed = window.confirm(
       isSeries
-        ? "Vuoi rimuovere questa serie dal Vault? Verranno eliminati anche il progresso e gli episodi salvati."
-        : "Vuoi rimuovere questo film dal Vault?"
+        ? t("confirmRemoveSeries")
+        : t("confirmRemoveMovie")
     );
 
     if (!confirmed) {
@@ -302,9 +294,7 @@ export default function VaultCardActions({
           episodesError
         );
 
-        setMessage(
-          "Non è stato possibile eliminare gli episodi salvati."
-        );
+        setMessage(t("deleteSavedEpisodesError"));
         setHasError(true);
         setIsSaving(false);
         return;
@@ -322,9 +312,7 @@ export default function VaultCardActions({
           progressError
         );
 
-        setMessage(
-          "Non è stato possibile eliminare il progresso della serie."
-        );
+        setMessage(t("deleteSeriesProgressError"));
         setHasError(true);
         setIsSaving(false);
         return;
@@ -348,9 +336,7 @@ export default function VaultCardActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile rimuovere il contenuto."
-      );
+      setMessage(t("removeContentError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -375,10 +361,10 @@ export default function VaultCardActions({
             }`}
           >
             {progressStatus === "watched"
-              ? "✓ Completata"
+              ? t("seriesCompletedAction")
               : progressStatus === "in_progress"
-                ? "▶ Continua"
-                : "▶ Apri episodi"}
+                ? t("continueAction")
+                : t("openEpisodes")}
           </Link>
 
           <button
@@ -387,7 +373,9 @@ export default function VaultCardActions({
             disabled={isSaving}
             className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? "Attendi..." : "Rimuovi"}
+            {isSaving
+              ? t("wait")
+              : t("remove")}
           </button>
         </div>
       ) : vaultStatus === "watched" ? (
@@ -403,15 +391,17 @@ export default function VaultCardActions({
               type="button"
               onClick={recordMovieWatch}
               disabled={isSaving}
-              title="Aggiungi una nuova visione"
+              title={t("addNewWatch")}
               className="rounded-full bg-green-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving
-                ? "Salvataggio..."
-                : `✓ Visto ×${Math.max(
-                    watchCount,
-                    1
-                  )}`}
+                ? t("saving")
+                : t("watchedCount", {
+                    count: Math.max(
+                      watchCount,
+                      1
+                    ),
+                  })}
             </button>
 
             {watchCount > 1 && (
@@ -419,10 +409,10 @@ export default function VaultCardActions({
                 type="button"
                 onClick={removeLastMovieWatch}
                 disabled={isSaving}
-                title="Annulla l'ultima visione"
+                title={t("undoLastWatch")}
                 className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                ↩ −1 visione
+                {t("removeOneWatch")}
               </button>
             )}
           </div>
@@ -436,7 +426,7 @@ export default function VaultCardActions({
               disabled={isSaving}
               className="rounded-full border border-violet-500/40 bg-violet-500/10 px-4 py-3 text-sm font-bold text-violet-300 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              👀 Da vedere
+              {t("watchlistAction")}
             </button>
 
             <button
@@ -445,7 +435,9 @@ export default function VaultCardActions({
               disabled={isSaving}
               className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSaving ? "Attendi..." : "Rimuovi"}
+              {isSaving
+                ? t("wait")
+                : t("remove")}
             </button>
           </div>
         </div>
@@ -460,8 +452,8 @@ export default function VaultCardActions({
             className="rounded-full bg-green-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving
-              ? "Salvataggio..."
-              : "✓ Segna come visto"}
+              ? t("saving")
+              : t("markAsWatched")}
           </button>
 
           <button
@@ -470,7 +462,9 @@ export default function VaultCardActions({
             disabled={isSaving}
             className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? "Attendi..." : "Rimuovi"}
+            {isSaving
+              ? t("wait")
+              : t("remove")}
           </button>
         </div>
       )}

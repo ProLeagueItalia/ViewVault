@@ -3,47 +3,26 @@
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 
-type Locale = "it" | "en" | "es" | "fr" | "de";
-
-const languages: {
-  code: Locale;
-  label: string;
-}[] = [
-  {
-    code: "it",
-    label: "IT",
-  },
-  {
-    code: "en",
-    label: "EN",
-  },
-  {
-    code: "es",
-    label: "ES",
-  },
-  {
-    code: "fr",
-    label: "FR",
-  },
-  {
-    code: "de",
-    label: "DE",
-  },
-];
-
-function isLocale(value: string): value is Locale {
-  return ["it", "en", "es", "fr", "de"].includes(value);
-}
+import {
+  defaultLocale,
+  isSupportedLocale,
+  localeLabels,
+  supportedLocales,
+  type SupportedLocale,
+} from "../i18n/config";
 
 export default function LanguageSwitcher() {
   const router = useRouter();
   const currentLocale = useLocale();
 
-  const locale: Locale = isLocale(currentLocale)
-    ? currentLocale
-    : "it";
+  const locale: SupportedLocale =
+    isSupportedLocale(currentLocale)
+      ? currentLocale
+      : defaultLocale;
 
-  function changeLanguage(newLocale: Locale) {
+  function changeLanguage(
+    newLocale: SupportedLocale
+  ) {
     document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
 
     router.refresh();
@@ -62,17 +41,19 @@ export default function LanguageSwitcher() {
         id="language-switcher"
         value={locale}
         onChange={(event) =>
-          changeLanguage(event.target.value as Locale)
+          changeLanguage(
+            event.target.value as SupportedLocale
+          )
         }
         className="h-11 cursor-pointer rounded-full border border-zinc-700 bg-[#151515] px-3 text-sm font-semibold text-zinc-200 outline-none transition hover:border-[#7C3AED] focus:border-[#7C3AED]"
         aria-label="Seleziona lingua"
       >
-        {languages.map((language) => (
+        {supportedLocales.map((language) => (
           <option
-            key={language.code}
-            value={language.code}
+            key={language}
+            value={language}
           >
-            {language.label}
+            {localeLabels[language]}
           </option>
         ))}
       </select>

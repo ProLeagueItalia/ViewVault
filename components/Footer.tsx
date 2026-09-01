@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations("Footer");
+
   return (
     <footer className="mt-auto border-t border-zinc-800 bg-[#0F0F0F]">
       <div className="mx-auto max-w-7xl px-6 py-10">
@@ -24,7 +27,7 @@ export default function Footer() {
 
           {/* LINK LEGALI */}
           <nav
-            aria-label="Link legali"
+            aria-label={t("legalLinks")}
             className="flex flex-wrap gap-x-6 gap-y-3 text-sm"
           >
             <Link
@@ -45,7 +48,7 @@ export default function Footer() {
               href="/terms"
               className="text-zinc-400 transition hover:text-[#A78BFA]"
             >
-              Termini d&apos;Uso
+              {t("terms")}
             </Link>
 
             <Link
@@ -60,7 +63,7 @@ export default function Footer() {
         <div className="mt-8 border-t border-zinc-800 pt-6">
           <div className="flex flex-col gap-3 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between">
             <p>
-              © 2026 ViewVault. Tutti i diritti riservati.
+              © 2026 ViewVault. {t("copyright")}
             </p>
 
             <a

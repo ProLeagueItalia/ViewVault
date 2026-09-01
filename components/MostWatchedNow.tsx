@@ -10,22 +10,15 @@ import {
   type TMDBTrendingItem,
 } from "../lib/tmdb";
 
-const MAX_ITEMS = 10;
+import { getTmdbLanguage } from "../i18n/config";
 
-const TMDB_LANGUAGES: Record<string, string> = {
-  it: "it-IT",
-  en: "en-US",
-  es: "es-ES",
-  fr: "fr-FR",
-  de: "de-DE",
-};
+const MAX_ITEMS = 10;
 
 export default async function MostWatchedNow() {
   const t = await getTranslations("MostWatchedNow");
   const locale = await getLocale();
 
-  const tmdbLanguage =
-    TMDB_LANGUAGES[locale] ?? "it-IT";
+  const tmdbLanguage = getTmdbLanguage(locale);
 
   let items: TMDBTrendingItem[] = [];
 
