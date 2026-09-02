@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 
@@ -24,13 +25,12 @@ export default function SeriesVaultActions({
 }: SeriesVaultActionsProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const t = useTranslations("SeriesVaultActions");
 
   const [status, setStatus] =
     useState<SeriesVaultStatus>(initialStatus);
-
   const [isFavorite, setIsFavorite] =
     useState(initialFavorite);
-
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
@@ -42,9 +42,7 @@ export default function SeriesVaultActions({
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      setMessage(
-        "Effettua il login per gestire questa serie."
-      );
+      setMessage(t("loginRequired"));
       setHasError(true);
       return null;
     }
@@ -53,16 +51,13 @@ export default function SeriesVaultActions({
   }
 
   async function addToWatchlist() {
-    if (isSaving) {
-      return;
-    }
+    if (isSaving) return;
 
     setIsSaving(true);
     setMessage("");
     setHasError(false);
 
     const user = await getAuthenticatedUser();
-
     if (!user) {
       setIsSaving(false);
       return;
@@ -77,10 +72,7 @@ export default function SeriesVaultActions({
           media_type: "tv",
           status: "watchlist",
         },
-        {
-          onConflict:
-            "user_id,tmdb_id,media_type",
-        }
+        { onConflict: "user_id,tmdb_id,media_type" }
       );
 
     if (error) {
@@ -93,35 +85,26 @@ export default function SeriesVaultActions({
           code: error.code,
         }
       );
-
-      setMessage(
-        "Non è stato possibile aggiungere la serie al Vault."
-      );
+      setMessage(t("addError"));
       setHasError(true);
       setIsSaving(false);
       return;
     }
 
     setStatus("watchlist");
-    setMessage(
-      "Serie aggiunta alla lista Da vedere."
-    );
-
+    setMessage(t("addedToWatchlist"));
     setIsSaving(false);
     router.refresh();
   }
 
   async function toggleFavorite() {
-    if (isSaving || status === null) {
-      return;
-    }
+    if (isSaving || status === null) return;
 
     setIsSaving(true);
     setMessage("");
     setHasError(false);
 
     const user = await getAuthenticatedUser();
-
     if (!user) {
       setIsSaving(false);
       return;
@@ -131,9 +114,7 @@ export default function SeriesVaultActions({
 
     const { error } = await supabase
       .from("vault_items")
-      .update({
-        is_favorite: newFavoriteValue,
-      })
+      .update({ is_favorite: newFavoriteValue })
       .eq("user_id", user.id)
       .eq("tmdb_id", seriesId)
       .eq("media_type", "tv");
@@ -148,46 +129,33 @@ export default function SeriesVaultActions({
           code: error.code,
         }
       );
-
-      setMessage(
-        "Non è stato possibile aggiornare i Preferiti."
-      );
+      setMessage(t("favoriteError"));
       setHasError(true);
       setIsSaving(false);
       return;
     }
 
     setIsFavorite(newFavoriteValue);
-
     setMessage(
       newFavoriteValue
-        ? "Serie aggiunta ai Preferiti."
-        : "Serie rimossa dai Preferiti."
+        ? t("addedToFavorites")
+        : t("removedFromFavorites")
     );
-
     setIsSaving(false);
     router.refresh();
   }
 
   async function removeFromVault() {
-    if (isSaving) {
-      return;
-    }
+    if (isSaving) return;
 
-    const confirmed = window.confirm(
-      "Vuoi rimuovere questa serie dal Vault? Verranno eliminati anche il progresso e gli episodi salvati."
-    );
-
-    if (!confirmed) {
-      return;
-    }
+    const confirmed = window.confirm(t("removeConfirm"));
+    if (!confirmed) return;
 
     setIsSaving(true);
     setMessage("");
     setHasError(false);
 
     const user = await getAuthenticatedUser();
-
     if (!user) {
       setIsSaving(false);
       return;
@@ -200,19 +168,8 @@ export default function SeriesVaultActions({
       .eq("series_id", seriesId);
 
     if (episodesError) {
-      console.error(
-        "Errore durante la rimozione degli episodi:",
-        {
-          message: episodesError.message,
-          details: episodesError.details,
-          hint: episodesError.hint,
-          code: episodesError.code,
-        }
-      );
-
-      setMessage(
-        "Non è stato possibile eliminare gli episodi salvati."
-      );
+      console.error("Errore durante la rimozione degli episodi:", episodesError);
+      setMessage(t("episodesDeleteError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -225,19 +182,8 @@ export default function SeriesVaultActions({
       .eq("series_id", seriesId);
 
     if (progressError) {
-      console.error(
-        "Errore durante la rimozione del progresso:",
-        {
-          message: progressError.message,
-          details: progressError.details,
-          hint: progressError.hint,
-          code: progressError.code,
-        }
-      );
-
-      setMessage(
-        "Non è stato possibile eliminare il progresso della serie."
-      );
+      console.error("Errore durante la rimozione del progresso:", progressError);
+      setMessage(t("progressDeleteError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -251,19 +197,8 @@ export default function SeriesVaultActions({
       .eq("media_type", "tv");
 
     if (vaultError) {
-      console.error(
-        "Errore durante la rimozione della serie dal Vault:",
-        {
-          message: vaultError.message,
-          details: vaultError.details,
-          hint: vaultError.hint,
-          code: vaultError.code,
-        }
-      );
-
-      setMessage(
-        "Non è stato possibile rimuovere la serie dal Vault."
-      );
+      console.error("Errore durante la rimozione della serie dal Vault:", vaultError);
+      setMessage(t("removeError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -271,20 +206,18 @@ export default function SeriesVaultActions({
 
     setStatus(null);
     setIsFavorite(false);
-
-    setMessage("Serie rimossa dal Vault.");
-
+    setMessage(t("removedFromVault"));
     setIsSaving(false);
     router.refresh();
   }
 
   const statusLabel =
     status === "watched"
-      ? "✓ Vista"
+      ? t("statusWatched")
       : status === "in_progress"
-        ? "🕒 In corso"
+        ? t("statusInProgress")
         : status === "watchlist"
-          ? "👀 Da vedere"
+          ? t("statusWatchlist")
           : null;
 
   return (
@@ -297,9 +230,7 @@ export default function SeriesVaultActions({
             disabled={isSaving}
             className="rounded-full bg-[#7C3AED] px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.45)] transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving
-              ? "Salvataggio..."
-              : "+ Aggiungi al Vault"}
+            {isSaving ? t("saving") : t("addToVault")}
           </button>
         )}
 
@@ -327,9 +258,7 @@ export default function SeriesVaultActions({
                   : "border-zinc-700 text-zinc-300 hover:border-red-500 hover:text-red-300"
               }`}
             >
-              {isFavorite
-                ? "❤️ Nei Preferiti"
-                : "♡ Aggiungi ai Preferiti"}
+              {isFavorite ? t("inFavorites") : t("addToFavorites")}
             </button>
 
             <button
@@ -338,22 +267,14 @@ export default function SeriesVaultActions({
               disabled={isSaving}
               className="rounded-full border border-zinc-700 px-6 py-4 font-semibold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSaving
-                ? "Attendi..."
-                : "Rimuovi"}
+              {isSaving ? t("wait") : t("remove")}
             </button>
           </>
         )}
       </div>
 
       {message && (
-        <p
-          className={`mt-4 text-sm ${
-            hasError
-              ? "text-red-400"
-              : "text-green-400"
-          }`}
-        >
+        <p className={`mt-4 text-sm ${hasError ? "text-red-400" : "text-green-400"}`}>
           {message}
         </p>
       )}

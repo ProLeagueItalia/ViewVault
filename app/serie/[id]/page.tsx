@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
 import Navbar from "../../../components/Navbar";
 import BackButton from "../../../components/BackButton";
 import SeasonEpisodes, {
@@ -11,6 +13,7 @@ import SeriesVaultActions, {
 import WatchProviders from "../../../components/WatchProviders";
 
 import { createClient } from "../../../lib/supabase/server";
+import { getTmdbLanguage } from "../../../i18n/config";
 
 import {
   getSeries,
@@ -118,15 +121,22 @@ export default async function SeriesPage({
 }: PageProps) {
   const { id } = await params;
 
+  const locale = await getLocale();
+  const t = await getTranslations({
+    locale,
+    namespace: "SeriesDetails",
+  });
+  const tmdbLanguage = getTmdbLanguage(locale);
+
   const [
   seriesData,
   creditsData,
   videosData,
   watchProviders,
 ] = await Promise.all([
-  getSeries(id),
-  getSeriesCredits(id),
-  getSeriesVideos(id),
+  getSeries(id, tmdbLanguage),
+  getSeriesCredits(id, tmdbLanguage),
+  getSeriesVideos(id, tmdbLanguage),
   getSeriesWatchProviders(id),
 ]);
 
@@ -159,7 +169,7 @@ const videos = videosData as VideosResponse;
 
   const firstYear = series.first_air_date
     ? series.first_air_date.slice(0, 4)
-    : "N/D";
+    : t("notAvailable");
 
   const regularSeasons =
     series.seasons?.filter(
@@ -172,7 +182,8 @@ const videos = videosData as VideosResponse;
     regularSeasons.map(async (season) => {
       const seasonData = (await getSeriesSeason(
         id,
-        season.season_number
+        season.season_number,
+        tmdbLanguage
       )) as SeasonDetailsResponse;
 
       return {
@@ -308,6 +319,27 @@ const seriesVaultStatus: SeriesVaultStatus =
     progressStatus === "in_progress" ||
     progressStatus === "watched";
 
+
+  const localizedStatus = (() => {
+    switch (series.status) {
+      case "Returning Series":
+        return t("statuses.returningSeries");
+      case "Ended":
+        return t("statuses.ended");
+      case "Canceled":
+      case "Cancelled":
+        return t("statuses.canceled");
+      case "In Production":
+        return t("statuses.inProduction");
+      case "Planned":
+        return t("statuses.planned");
+      case "Pilot":
+        return t("statuses.pilot");
+      default:
+        return series.status || t("notAvailable");
+    }
+  })();
+
   return (
   <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
     <Navbar />
@@ -338,7 +370,7 @@ const seriesVaultStatus: SeriesVaultStatus =
                 />
 
                 <span className="absolute left-4 top-4 rounded-full bg-[#7C3AED] px-4 py-2 text-sm font-bold text-white">
-                  Serie TV
+                  {t("tvSeries")}
                 </span>
               </div>
             </div>
@@ -357,9 +389,9 @@ const seriesVaultStatus: SeriesVaultStatus =
               <p className="mt-5 text-lg text-zinc-300">
                 {firstYear} • {series.number_of_seasons}{" "}
                 {series.number_of_seasons === 1
-                  ? "stagione"
-                  : "stagioni"}{" "}
-                • {series.number_of_episodes} episodi • ⭐{" "}
+                  ? t("season")
+                  : t("seasons")}{" "}
+                • {series.number_of_episodes} {t("episodes").toLowerCase()} • ⭐{" "}
                 {series.vote_average?.toFixed(1)}
               </p>
 
@@ -376,34 +408,34 @@ const seriesVaultStatus: SeriesVaultStatus =
 
               <p className="mt-8 max-w-4xl text-lg leading-8 text-zinc-200">
                 {series.overview ||
-                  "Trama non disponibile."}
+                  t("overviewUnavailable")}
               </p>
 
               <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <InfoBox
-                  label="Stagioni"
+                  label={t("seasons")}
                   value={series.number_of_seasons}
                 />
 
                 <InfoBox
-                  label="Episodi"
+                  label={t("episodes")}
                   value={series.number_of_episodes}
                 />
 
                 <InfoBox
-                  label="Lingua"
+                  label={t("language")}
                   value={series.original_language?.toUpperCase()}
                 />
 
                 <InfoBox
-                  label="Stato"
-                  value={series.status}
+                  label={t("status")}
+                  value={localizedStatus}
                 />
               </div>
 
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <div className="rounded-full bg-[#7C3AED] px-8 py-4 text-center text-lg font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.45)]">
-                  Seleziona gli episodi visti
+                  {t("selectWatchedEpisodes")}
                 </div>
 
                 {trailer && (
@@ -413,7 +445,7 @@ const seriesVaultStatus: SeriesVaultStatus =
                     rel="noreferrer"
                     className="rounded-full border border-zinc-700 px-8 py-4 text-center text-lg font-semibold text-white transition hover:border-[#7C3AED]"
                   >
-                    ▶ Guarda trailer
+                    ▶ {t("watchTrailer")}
                   </a>
                 )}
               </div>
@@ -423,7 +455,7 @@ const seriesVaultStatus: SeriesVaultStatus =
           <WatchProviders
             providers={watchProviders}
             title={series.name}
-            countryLabel="Italia"
+            countryLabel={t("italy")}
           />
 
           {/* STAGIONI ED EPISODI */}
@@ -437,12 +469,11 @@ const seriesVaultStatus: SeriesVaultStatus =
               <p className="text-4xl">📺</p>
 
               <h2 className="mt-5 text-2xl font-bold">
-                Episodi non disponibili
+                {t("episodesUnavailable")}
               </h2>
 
               <p className="mt-3 text-zinc-400">
-                Non è stato possibile recuperare gli episodi
-                di questa serie.
+                {t("episodesUnavailableDescription")}
               </p>
             </section>
           )}
@@ -466,14 +497,14 @@ const seriesVaultStatus: SeriesVaultStatus =
           {trailer && (
             <section className="mt-16">
               <h2 className="text-3xl font-bold">
-                🎥 Trailer
+                🎥 {t("trailer")}
               </h2>
 
               <div className="mt-6 overflow-hidden rounded-3xl border border-zinc-800">
                 <iframe
                   className="aspect-video w-full"
                   src={`https://www.youtube-nocookie.com/embed/${trailer.key}`}
-                  title={`Trailer di ${series.name}`}
+                  title={t("trailerOf", { title: series.name })}
                   allowFullScreen
                 />
               </div>
@@ -483,7 +514,7 @@ const seriesVaultStatus: SeriesVaultStatus =
           {/* CAST */}
           <section className="mt-16">
             <h2 className="text-3xl font-bold">
-              🎭 Cast principale
+              🎭 {t("mainCast")}
             </h2>
 
             {cast.length > 0 ? (
@@ -512,7 +543,7 @@ const seriesVaultStatus: SeriesVaultStatus =
 
                         <p className="text-sm text-zinc-400">
                           {person.character ||
-                            "Personaggio non disponibile"}
+                            t("characterUnavailable")}
                         </p>
                       </div>
                     </article>
@@ -521,7 +552,7 @@ const seriesVaultStatus: SeriesVaultStatus =
               </div>
             ) : (
               <p className="mt-6 text-zinc-400">
-                Cast non disponibile.
+                {t("castUnavailable")}
               </p>
             )}
           </section>
@@ -545,7 +576,7 @@ function InfoBox({
       </p>
 
       <p className="mt-1 text-xl font-bold">
-        {value || "N/D"}
+        {value || "—"}
       </p>
     </div>
   );

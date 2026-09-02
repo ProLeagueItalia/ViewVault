@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 
@@ -68,6 +69,9 @@ export default function SeasonEpisodes({
 }: SeasonEpisodesProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const locale = useLocale();
+  const t = useTranslations("SeasonEpisodes");
+  const tDetails = useTranslations("SeriesDetails");
 
   const [openSeason, setOpenSeason] = useState<number | null>(
     seasons[0]?.season_number ?? null
@@ -119,7 +123,7 @@ export default function SeasonEpisodes({
         );
 
         setMessage(
-          "Non è stato possibile controllare il tuo account."
+          t("accountCheckError")
         );
         setHasError(true);
         setIsLoading(false);
@@ -156,7 +160,7 @@ export default function SeasonEpisodes({
         );
 
         setMessage(
-          "Non è stato possibile recuperare gli episodi visti."
+          t("loadWatchedError")
         );
         setHasError(true);
         setIsLoading(false);
@@ -170,7 +174,7 @@ export default function SeasonEpisodes({
         );
 
         setMessage(
-          "Non è stato possibile recuperare il numero di visioni."
+          t("loadWatchCountError")
         );
         setHasError(true);
         setIsLoading(false);
@@ -250,7 +254,7 @@ export default function SeasonEpisodes({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per salvare gli episodi visti."
+        t("loginSaveEpisodes")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -274,7 +278,7 @@ export default function SeasonEpisodes({
       );
 
       setMessage(
-        "Non è stato possibile aggiornare l'episodio."
+        t("updateEpisodeError")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -287,7 +291,7 @@ export default function SeasonEpisodes({
 
     if (!result) {
       setMessage(
-        "Il database non ha restituito il risultato dell'operazione."
+        t("databaseNoResult")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -320,8 +324,8 @@ export default function SeasonEpisodes({
 
     setMessage(
       result.is_watched
-        ? "Episodio segnato come visto."
-        : "Episodio segnato come non visto."
+        ? t("episodeMarkedWatched")
+        : t("episodeMarkedUnwatched")
     );
 
     setSavingEpisode(null);
@@ -357,7 +361,7 @@ export default function SeasonEpisodes({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per salvare le visioni."
+        t("loginSaveWatches")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -381,7 +385,7 @@ export default function SeasonEpisodes({
       );
 
       setMessage(
-        "Non è stato possibile registrare la visione."
+        t("recordWatchError")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -394,7 +398,7 @@ export default function SeasonEpisodes({
 
     if (!result) {
       setMessage(
-        "Il database non ha restituito il conteggio delle visioni."
+        t("databaseNoWatchCount")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -415,8 +419,8 @@ export default function SeasonEpisodes({
 
     setMessage(
       result.watch_count === 1
-        ? "Episodio segnato come visto."
-        : `Visione registrata. Visto ×${result.watch_count}.`
+        ? t("episodeMarkedWatched")
+        : t("watchRecorded", { count: result.watch_count })
     );
 
     setSavingEpisode(null);
@@ -454,7 +458,7 @@ export default function SeasonEpisodes({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per modificare le visioni."
+        t("loginModifyWatches")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -477,7 +481,7 @@ export default function SeasonEpisodes({
       );
 
       setMessage(
-        "Non è stato possibile annullare l'ultima visione."
+        t("undoWatchError")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -490,7 +494,7 @@ export default function SeasonEpisodes({
 
     if (!result) {
       setMessage(
-        "Il database non ha restituito il nuovo conteggio."
+        t("databaseNoNewCount")
       );
       setHasError(true);
       setSavingEpisode(null);
@@ -503,7 +507,7 @@ export default function SeasonEpisodes({
       return updatedCounts;
     });
 
-    setMessage("Ultima visione annullata.");
+    setMessage(t("lastWatchUndone"));
     setSavingEpisode(null);
     router.refresh();
   }
@@ -532,7 +536,7 @@ export default function SeasonEpisodes({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per salvare gli episodi visti."
+        t("loginSaveEpisodes")
       );
       setHasError(true);
       setSavingBulk(null);
@@ -555,7 +559,7 @@ export default function SeasonEpisodes({
         error
       );
       setMessage(
-        "Non è stato possibile aggiornare gli episodi."
+        t("bulkUpdateError")
       );
       setHasError(true);
       setSavingBulk(null);
@@ -577,7 +581,7 @@ export default function SeasonEpisodes({
 
     if (!result) {
       setMessage(
-        "Il database non ha restituito il risultato dell'operazione."
+        t("databaseNoResult")
       );
       setHasError(true);
       setSavingBulk(null);
@@ -708,7 +712,7 @@ export default function SeasonEpisodes({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per registrare il rewatch."
+        t("loginRewatch")
       );
       setHasError(true);
       setSavingRewatchBulk(null);
@@ -731,7 +735,7 @@ export default function SeasonEpisodes({
       );
 
       setMessage(
-        "Non è stato possibile registrare il rewatch."
+        t("rewatchError")
       );
       setHasError(true);
       setSavingRewatchBulk(null);
@@ -806,7 +810,7 @@ export default function SeasonEpisodes({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per modificare il rewatch."
+        t("loginModifyRewatch")
       );
       setHasError(true);
       setSavingRewatchBulk(null);
@@ -828,7 +832,7 @@ export default function SeasonEpisodes({
       );
 
       setMessage(
-        "Non è stato possibile annullare il rewatch."
+        t("undoRewatchError")
       );
       setHasError(true);
       setSavingRewatchBulk(null);
@@ -871,10 +875,10 @@ export default function SeasonEpisodes({
 
   const seriesStatus =
     watchedCount === 0
-      ? "Da vedere"
+      ? "watchlist"
       : watchedCount >= totalEpisodes && totalEpisodes > 0
-        ? "Vista"
-        : "In corso";
+        ? "watched"
+        : "in_progress";
 
   return (
     <section className="mt-16">
@@ -882,33 +886,33 @@ export default function SeasonEpisodes({
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#7C3AED]">
-              Il tuo progresso
+              {t("yourProgress")}
             </p>
 
             <h2 className="mt-2 text-3xl font-bold">
-              📺 Stagioni ed episodi
+              📺 {t("seasonsAndEpisodes")}
             </h2>
 
             <p className="mt-3 text-zinc-400">
-              {watchedCount} episodi visti su {totalEpisodes}
+              {t("episodesWatchedOf", { watched: watchedCount, total: totalEpisodes })}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <span
               className={`rounded-full px-4 py-2 text-sm font-bold ${
-                seriesStatus === "Vista"
+                seriesStatus === "watched"
                   ? "bg-green-600 text-white"
-                  : seriesStatus === "In corso"
+                  : seriesStatus === "in_progress"
                     ? "bg-amber-500 text-black"
                     : "bg-[#7C3AED] text-white"
               }`}
             >
-              {seriesStatus === "Vista"
-                ? "✓ Vista"
-                : seriesStatus === "In corso"
-                  ? "🕒 In corso"
-                  : "Da vedere"}
+              {seriesStatus === "watched"
+                ? t("statusWatched")
+                : seriesStatus === "in_progress"
+                  ? t("statusInProgress")
+                  : t("statusWatchlist")}
             </span>
 
             <span className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-200">
@@ -935,8 +939,8 @@ export default function SeasonEpisodes({
                 watchedCount < totalEpisodes,
                 "series",
                 watchedCount < totalEpisodes
-                  ? "Tutta la serie è stata segnata come vista."
-                  : "Tutta la serie è stata segnata come non vista."
+                  ? t("wholeSeriesMarkedWatched")
+                  : t("wholeSeriesMarkedUnwatched")
               )
             }
             disabled={
@@ -953,10 +957,10 @@ export default function SeasonEpisodes({
             } disabled:cursor-not-allowed disabled:opacity-60`}
           >
             {savingBulk === "series"
-              ? "Salvataggio..."
+              ? t("saving")
               : watchedCount >= totalEpisodes && totalEpisodes > 0
-                ? "↩ Segna tutta la serie come non vista"
-                : "✓ Segna tutta la serie come vista"}
+                ? t("markWholeSeriesUnwatched")
+                : t("markWholeSeriesWatched")}
           </button>
 
           {watchedCount >= totalEpisodes &&
@@ -968,7 +972,7 @@ export default function SeasonEpisodes({
                     recordEpisodeWatchesBulk(
                       allEpisodePayload,
                       "rewatch-series",
-                      "Rewatch dell'intera serie registrato."
+                      t("wholeSeriesRewatchRecorded")
                     )
                   }
                   disabled={
@@ -980,8 +984,8 @@ export default function SeasonEpisodes({
                   className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-5 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {savingRewatchBulk === "rewatch-series"
-                    ? "Salvataggio..."
-                    : "🔁 Rivedi tutta la serie"}
+                    ? t("saving")
+                    : t("rewatchWholeSeries")}
                 </button>
 
                 {canRemoveBulkRewatch(
@@ -993,7 +997,7 @@ export default function SeasonEpisodes({
                       removeEpisodeWatchesBulk(
                         allEpisodePayload,
                         "undo-rewatch-series",
-                        "Ultimo rewatch dell'intera serie annullato."
+                        t("wholeSeriesRewatchUndone")
                       )
                     }
                     disabled={
@@ -1005,8 +1009,8 @@ export default function SeasonEpisodes({
                     className="rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {savingRewatchBulk === "undo-rewatch-series"
-                      ? "Salvataggio..."
-                      : "↩ Annulla rewatch serie"}
+                      ? t("saving")
+                      : t("undoSeriesRewatch")}
                   </button>
                 )}
               </>
@@ -1070,19 +1074,18 @@ export default function SeasonEpisodes({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <h3 className="text-xl font-bold">
-                      {season.name}
+                      {`${tDetails("season")} ${season.season_number}`}
                     </h3>
 
                     {seasonCompleted && (
                       <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
-                        ✓ Completata
+                        {t("completed")}
                       </span>
                     )}
                   </div>
 
                   <p className="mt-2 text-sm text-zinc-400">
-                    {watchedSeasonEpisodes} di{" "}
-                    {season.episodes.length} episodi visti
+                    {t("seasonEpisodesWatched", { watched: watchedSeasonEpisodes, total: season.episodes.length })}
                   </p>
 
                   <div className="mt-3 h-2 max-w-xl overflow-hidden rounded-full bg-zinc-800">
@@ -1121,8 +1124,8 @@ export default function SeasonEpisodes({
                           !seasonCompleted,
                           `season-${season.season_number}`,
                           seasonCompleted
-                            ? `${season.name} è stata segnata come non vista.`
-                            : `${season.name} è stata segnata come vista.`
+                            ? `${`${tDetails("season")} ${season.season_number}`} è stata segnata come non vista.`
+                            : `${`${tDetails("season")} ${season.season_number}`} è stata segnata come vista.`
                         )
                       }
                       disabled={
@@ -1140,10 +1143,10 @@ export default function SeasonEpisodes({
                     >
                       {savingBulk ===
                       `season-${season.season_number}`
-                        ? "Salvataggio..."
+                        ? t("saving")
                         : seasonCompleted
-                          ? "↩ Segna stagione come non vista"
-                          : "✓ Segna stagione come vista"}
+                          ? t("markSeasonUnwatched")
+                          : t("markSeasonWatched")}
                     </button>
 
                     {seasonCompleted && (
@@ -1154,7 +1157,7 @@ export default function SeasonEpisodes({
                             recordEpisodeWatchesBulk(
                               getSeasonEpisodePayload(season),
                               `rewatch-season-${season.season_number}`,
-                              `Rewatch di ${season.name} registrato.`
+                              t("seasonRewatchRecorded", { season: `${tDetails("season")} ${season.season_number}` })
                             )
                           }
                           disabled={
@@ -1167,8 +1170,8 @@ export default function SeasonEpisodes({
                         >
                           {savingRewatchBulk ===
                           `rewatch-season-${season.season_number}`
-                            ? "Salvataggio..."
-                            : "🔁 Rivedi stagione"}
+                            ? t("saving")
+                            : t("rewatchSeason")}
                         </button>
 
                         {canRemoveBulkRewatch(
@@ -1180,7 +1183,7 @@ export default function SeasonEpisodes({
                               removeEpisodeWatchesBulk(
                                 getSeasonEpisodePayload(season),
                                 `undo-rewatch-season-${season.season_number}`,
-                                `Ultimo rewatch di ${season.name} annullato.`
+                                t("seasonRewatchUndone", { season: `${tDetails("season")} ${season.season_number}` })
                               )
                             }
                             disabled={
@@ -1193,8 +1196,8 @@ export default function SeasonEpisodes({
                           >
                             {savingRewatchBulk ===
                             `undo-rewatch-season-${season.season_number}`
-                              ? "Salvataggio..."
-                              : "↩ Annulla rewatch stagione"}
+                              ? t("saving")
+                              : t("undoSeasonRewatch")}
                           </button>
                         )}
                       </>
@@ -1235,23 +1238,27 @@ export default function SeasonEpisodes({
 
                           <div>
                             <p className="text-sm font-semibold text-[#A78BFA]">
-                              Episodio {episode.episode_number}
+                              {t("episodeNumber", { number: episode.episode_number })}
                             </p>
 
                             <h4 className="mt-1 text-lg font-bold">
                               {episode.name ||
-                                `Episodio ${episode.episode_number}`}
+                                t("episodeNumber", { number: episode.episode_number })}
                             </h4>
 
                             <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-400">
                               {episode.overview ||
-                                "Descrizione non disponibile."}
+                                t("descriptionUnavailable")}
                             </p>
 
                             <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500">
                               {episode.air_date && (
                                 <span>
-                                  {episode.air_date}
+                                  {new Intl.DateTimeFormat(locale, {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  }).format(new Date(episode.air_date))}
                                 </span>
                               )}
 
@@ -1279,14 +1286,14 @@ export default function SeasonEpisodes({
                                     Boolean(savingEpisode) ||
                                     Boolean(savingBulk)
                                   }
-                                  title="Aggiungi una nuova visione"
+                                  title={t("addAnotherWatch")}
                                   className="rounded-full bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   {isLoading
-                                    ? "Controllo..."
+                                    ? t("checking")
                                     : isSaving
-                                      ? "Salvataggio..."
-                                      : `✓ Visto ×${Math.max(
+                                      ? t("saving")
+                                      : `✓ ${t("statusWatched").replace(/^✓\s*/, "")} ×${Math.max(
                                           episodeWatchCount,
                                           1
                                         )}`}
@@ -1307,10 +1314,10 @@ export default function SeasonEpisodes({
                                       Boolean(savingBulk) ||
                                       Boolean(savingRewatchBulk)
                                     }
-                                    title="Annulla l'ultima visione"
+                                    title={t("undoLastWatch")}
                                     className="rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm font-bold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
                                   >
-                                    ↩ −1 visione
+                                    {t("minusOneWatch")}
                                   </button>
                                 )}
 
@@ -1329,7 +1336,7 @@ export default function SeasonEpisodes({
                                   }
                                   className="rounded-full border border-violet-500/40 bg-violet-500/10 px-5 py-3 text-sm font-bold text-violet-300 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                  Segna non visto
+                                  {t("markUnwatched")}
                                 </button>
                               </>
                             ) : (
@@ -1350,10 +1357,10 @@ export default function SeasonEpisodes({
                                 className="rounded-full bg-zinc-800 px-5 py-3 text-sm font-bold text-zinc-300 transition hover:bg-[#7C3AED] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 {isLoading
-                                  ? "Controllo..."
+                                  ? t("checking")
                                   : isSaving
-                                    ? "Salvataggio..."
-                                    : "Segna visto"}
+                                    ? t("saving")
+                                    : t("markWatched")}
                               </button>
                             )}
                           </div>

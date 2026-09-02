@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 
@@ -18,23 +19,13 @@ export default function SeriesReview({
 }: SeriesReviewProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const t = useTranslations("SeriesReview");
 
-  const [rating, setRating] = useState<number | null>(
-    initialRating
-  );
-
-  const [review, setReview] = useState(
-    initialReview
-  );
-
-  const [isSaving, setIsSaving] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [hasError, setHasError] =
-    useState(false);
+  const [rating, setRating] = useState<number | null>(initialRating);
+  const [review, setReview] = useState(initialReview);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [hasError, setHasError] = useState(false);
 
   async function getAuthenticatedUser() {
     const {
@@ -43,12 +34,8 @@ export default function SeriesReview({
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      setMessage(
-        "Effettua il login per lasciare una valutazione."
-      );
-
+      setMessage(t("loginRequired"));
       setHasError(true);
-
       return null;
     }
 
@@ -56,20 +43,11 @@ export default function SeriesReview({
   }
 
   async function saveReview() {
-    if (isSaving) {
-      return;
-    }
+    if (isSaving) return;
 
-    if (
-      rating === null &&
-      review.trim() === ""
-    ) {
-      setMessage(
-        "Inserisci almeno un voto oppure una recensione."
-      );
-
+    if (rating === null && review.trim() === "") {
+      setMessage(t("ratingOrReviewRequired"));
       setHasError(true);
-
       return;
     }
 
@@ -77,9 +55,7 @@ export default function SeriesReview({
     setMessage("");
     setHasError(false);
 
-    const user =
-      await getAuthenticatedUser();
-
+    const user = await getAuthenticatedUser();
     if (!user) {
       setIsSaving(false);
       return;
@@ -89,10 +65,7 @@ export default function SeriesReview({
       .from("vault_items")
       .update({
         rating,
-        review:
-          review.trim() === ""
-            ? null
-            : review.trim(),
+        review: review.trim() === "" ? null : review.trim(),
       })
       .eq("user_id", user.id)
       .eq("tmdb_id", seriesId)
@@ -103,65 +76,38 @@ export default function SeriesReview({
     if (error) {
       console.error(
         "Errore durante il salvataggio della recensione della serie:",
-        {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        }
+        error
       );
-
-      setMessage(
-        "Non è stato possibile salvare la recensione."
-      );
-
+      setMessage(t("saveError"));
       setHasError(true);
       setIsSaving(false);
-
       return;
     }
 
     if (!data) {
-      setMessage(
-        "Guarda almeno un episodio prima di recensire questa serie."
-      );
-
+      setMessage(t("watchEpisodeFirst"));
       setHasError(true);
       setIsSaving(false);
-
       return;
     }
 
     setReview(review.trim());
-
-    setMessage(
-      "Recensione salvata nel tuo Vault."
-    );
-
+    setMessage(t("saved"));
     setIsSaving(false);
     router.refresh();
   }
 
   async function deleteReview() {
-    if (isSaving) {
-      return;
-    }
+    if (isSaving) return;
 
-    const confirmed = window.confirm(
-      "Vuoi eliminare il tuo voto e la tua recensione?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
+    const confirmed = window.confirm(t("deleteConfirm"));
+    if (!confirmed) return;
 
     setIsSaving(true);
     setMessage("");
     setHasError(false);
 
-    const user =
-      await getAuthenticatedUser();
-
+    const user = await getAuthenticatedUser();
     if (!user) {
       setIsSaving(false);
       return;
@@ -169,10 +115,7 @@ export default function SeriesReview({
 
     const { error } = await supabase
       .from("vault_items")
-      .update({
-        rating: null,
-        review: null,
-      })
+      .update({ rating: null, review: null })
       .eq("user_id", user.id)
       .eq("tmdb_id", seriesId)
       .eq("media_type", "tv");
@@ -180,84 +123,62 @@ export default function SeriesReview({
     if (error) {
       console.error(
         "Errore durante l'eliminazione della recensione della serie:",
-        {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        }
+        error
       );
-
-      setMessage(
-        "Non è stato possibile eliminare la recensione."
-      );
-
+      setMessage(t("deleteError"));
       setHasError(true);
       setIsSaving(false);
-
       return;
     }
 
     setRating(null);
     setReview("");
-
-    setMessage(
-      "Voto e recensione eliminati."
-    );
-
+    setMessage(t("deleted"));
     setIsSaving(false);
     router.refresh();
   }
 
   const hasExistingReview =
-    initialRating !== null ||
-    initialReview.trim() !== "";
+    initialRating !== null || initialReview.trim() !== "";
 
   return (
     <section className="mt-16">
       <div className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-6 md:p-8">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#8B5CF6]">
-            Il tuo giudizio
+            {t("eyebrow")}
           </p>
 
           <h2 className="mt-2 text-3xl font-bold">
-            ⭐ Valuta questa serie
+            ⭐ {t("title")}
           </h2>
 
           <p className="mt-3 max-w-2xl text-zinc-400">
-            Puoi votare e recensire la serie
-            anche mentre la stai ancora guardando.
+            {t("description")}
           </p>
         </div>
 
         <div className="mt-8">
           <p className="mb-4 font-semibold text-zinc-200">
-            Il tuo voto
+            {t("yourRating")}
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {Array.from(
-              { length: 10 },
-              (_, index) => index + 1
-            ).map((value) => {
-              const selected =
-                rating === value;
+            {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => {
+              const selected = rating === value;
 
               return (
                 <button
                   key={value}
                   type="button"
-                  onClick={() =>
-                    setRating(value)
-                  }
+                  onClick={() => setRating(value)}
                   disabled={isSaving}
                   className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg font-bold transition ${
                     selected
                       ? "border-[#7C3AED] bg-[#7C3AED] text-white shadow-[0_0_20px_rgba(124,58,237,0.45)]"
                       : "border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-[#7C3AED] hover:text-white"
                   } disabled:cursor-not-allowed disabled:opacity-60`}
-                  aria-label={`Voto ${value} su 10`}
+                  aria-label={t("ratingAria", { value })}
                 >
                   {value}
                 </button>
@@ -273,38 +194,29 @@ export default function SeriesReview({
 
               <button
                 type="button"
-                onClick={() =>
-                  setRating(null)
-                }
+                onClick={() => setRating(null)}
                 disabled={isSaving}
                 className="text-sm font-semibold text-zinc-500 transition hover:text-zinc-300"
               >
-                Rimuovi voto
+                {t("removeRating")}
               </button>
             </div>
           )}
         </div>
 
         <div className="mt-8">
-          <label
-            htmlFor="series-review"
-            className="font-semibold text-zinc-200"
-          >
-            La tua recensione
+          <label htmlFor="series-review" className="font-semibold text-zinc-200">
+            {t("yourReview")}
           </label>
 
           <textarea
             id="series-review"
             value={review}
-            onChange={(event) =>
-              setReview(
-                event.target.value
-              )
-            }
+            onChange={(event) => setReview(event.target.value)}
             disabled={isSaving}
             rows={6}
             maxLength={3000}
-            placeholder="Scrivi cosa ne pensi di questa serie..."
+            placeholder={t("placeholder")}
             className="mt-4 w-full resize-y rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-4 text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
@@ -321,34 +233,26 @@ export default function SeriesReview({
             className="rounded-full bg-[#7C3AED] px-7 py-3 font-semibold text-white shadow-[0_0_25px_rgba(124,58,237,0.35)] transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving
-              ? "Salvataggio..."
+              ? t("saving")
               : hasExistingReview
-                ? "Salva modifiche"
-                : "Salva recensione"}
+                ? t("saveChanges")
+                : t("saveReview")}
           </button>
 
-          {(hasExistingReview ||
-            rating !== null ||
-            review.trim() !== "") && (
+          {(hasExistingReview || rating !== null || review.trim() !== "") && (
             <button
               type="button"
               onClick={deleteReview}
               disabled={isSaving}
               className="rounded-full border border-zinc-700 px-7 py-3 font-semibold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Elimina recensione
+              {t("deleteReview")}
             </button>
           )}
         </div>
 
         {message && (
-          <p
-            className={`mt-5 text-sm font-medium ${
-              hasError
-                ? "text-red-400"
-                : "text-green-400"
-            }`}
-          >
+          <p className={`mt-5 text-sm font-medium ${hasError ? "text-red-400" : "text-green-400"}`}>
             {message}
           </p>
         )}
