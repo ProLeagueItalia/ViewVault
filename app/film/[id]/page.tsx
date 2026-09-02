@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
 import Navbar from "../../../components/Navbar";
 import BackButton from "../../../components/BackButton";
 import MovieVaultActions, {
@@ -8,6 +10,7 @@ import MediaComments from "../../../components/MediaComments";
 import WatchProviders from "../../../components/WatchProviders";
 
 import { createClient } from "../../../lib/supabase/server";
+import { getTmdbLanguage } from "../../../i18n/config";
 
 import {
   getMovie,
@@ -77,6 +80,12 @@ export default async function MoviePage({
   params,
 }: PageProps) {
   const { id } = await params;
+  const locale = await getLocale();
+  const t = await getTranslations({
+    locale,
+    namespace: "MovieDetails",
+  });
+  const tmdbLanguage = getTmdbLanguage(locale);
 
   const [
   movieData,
@@ -84,9 +93,9 @@ export default async function MoviePage({
   videosData,
   watchProviders,
 ] = await Promise.all([
-  getMovie(id),
-  getMovieCredits(id),
-  getMovieVideos(id),
+  getMovie(id, tmdbLanguage),
+  getMovieCredits(id, tmdbLanguage),
+  getMovieVideos(id, tmdbLanguage),
   getMovieWatchProviders(id),
 ]);
 
@@ -200,11 +209,11 @@ export default async function MoviePage({
 
   const releaseYear = movie.release_date
     ? movie.release_date.slice(0, 4)
-    : "N/D";
+    : t("notAvailable");
 
   const runtime = movie.runtime
-    ? `${movie.runtime} min`
-    : "Durata non disponibile";
+    ? t("minutes", { minutes: movie.runtime })
+    : t("durationUnavailable");
 
   return (
   <main className="min-h-screen bg-[#121212] text-[#F8FAFC]">
@@ -243,16 +252,16 @@ export default async function MoviePage({
                   }`}
                 >
                   {vaultStatus === "watched"
-                    ? "✓ Visto"
-                    : "👀 Da vedere"}
+                    ? t("watched")
+                    : t("watchlist")}
                 </span>
               )}
 
               {isFavorite && (
                 <span
                   className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-2xl shadow-lg"
-                  title="Preferito"
-                  aria-label="Film preferito"
+                  title={t("favorite")}
+                  aria-label={t("favoriteMovie")}
                 >
                   ❤️
                 </span>
@@ -287,31 +296,34 @@ export default async function MoviePage({
               </div>
 
               <p className="mt-8 max-w-4xl text-lg leading-8 text-zinc-200">
-                {movie.overview ||
-                  "Trama non disponibile."}
+                {movie.overview || t("overviewUnavailable")}
               </p>
 
               <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <InfoBox
-                  label="Popolarità"
+                  label={t("popularity")}
                   value={Math.round(
                     movie.popularity ?? 0
                   )}
+                  fallback={t("notAvailable")}
                 />
 
                 <InfoBox
-                  label="Voti"
+                  label={t("votes")}
                   value={movie.vote_count}
+                  fallback={t("notAvailable")}
                 />
 
                 <InfoBox
-                  label="Lingua"
+                  label={t("language")}
                   value={movie.original_language?.toUpperCase()}
+                  fallback={t("notAvailable")}
                 />
 
                 <InfoBox
-                  label="Stato"
+                  label={t("status")}
                   value={movie.status}
+                  fallback={t("notAvailable")}
                 />
               </div>
 
@@ -330,7 +342,7 @@ export default async function MoviePage({
                     rel="noreferrer"
                     className="w-fit rounded-full border border-zinc-700 px-8 py-4 text-center text-lg font-semibold text-white transition hover:border-[#7C3AED]"
                   >
-                    ▶ Guarda trailer
+                    {t("watchTrailer")}
                   </a>
                 )}
               </div>
@@ -359,14 +371,14 @@ export default async function MoviePage({
           {trailer && (
             <section className="mt-16">
               <h2 className="text-3xl font-bold">
-                🎥 Trailer
+                {t("trailer")}
               </h2>
 
               <div className="mt-6 overflow-hidden rounded-3xl border border-zinc-800">
                 <iframe
                   className="aspect-video w-full"
                   src={`https://www.youtube-nocookie.com/embed/${trailer.key}`}
-                  title={`Trailer di ${movie.title}`}
+                  title={t("trailerOf", { title: movie.title })}
                   allowFullScreen
                 />
               </div>
@@ -375,7 +387,7 @@ export default async function MoviePage({
 
           <section className="mt-16">
             <h2 className="text-3xl font-bold">
-              🎭 Cast principale
+              {t("mainCast")}
             </h2>
 
             {cast.length > 0 ? (
@@ -403,8 +415,7 @@ export default async function MoviePage({
                         </p>
 
                         <p className="text-sm text-zinc-400">
-                          {person.character ||
-                            "Personaggio non disponibile"}
+                          {person.character || t("characterUnavailable")}
                         </p>
                       </div>
                     </article>
@@ -413,7 +424,7 @@ export default async function MoviePage({
               </div>
             ) : (
               <p className="mt-6 text-zinc-400">
-                Cast non disponibile.
+                {t("castUnavailable")}
               </p>
             )}
           </section>
@@ -426,6 +437,7 @@ export default async function MoviePage({
 function InfoBox({
   label,
   value,
+  fallback,
 }: {
   label: string;
   value:
@@ -433,12 +445,13 @@ function InfoBox({
     | number
     | undefined
     | null;
+  fallback: string;
 }) {
   const displayValue =
     value === undefined ||
     value === null ||
     value === ""
-      ? "N/D"
+      ? fallback
       : value;
 
   return (

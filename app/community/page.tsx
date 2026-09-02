@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
 import Navbar from "../../components/Navbar";
 import BackButton from "../../components/BackButton";
 import FriendFinder from "../../components/FriendFinder";
@@ -13,33 +15,7 @@ import {
   getPosterUrl,
   getSeries,
 } from "../../lib/tmdb";
-
-const features = [
-  {
-    icon: "💬",
-    title: "Chat",
-    description:
-      "Conversa in tempo reale con altri appassionati di cinema e serie TV.",
-  },
-  {
-    icon: "🎬",
-    title: "Canali",
-    description:
-      "Crea e segui spazi dedicati a film, serie, generi e argomenti specifici.",
-  },
-  {
-    icon: "👥",
-    title: "Gruppi",
-    description:
-      "Costruisci community private o pubbliche con altri utenti ViewVault.",
-  },
-  {
-    icon: "🍿",
-    title: "Consigli & discussioni",
-    description:
-      "Condividi ciò che stai guardando, commenta e scopri nuovi titoli attraverso la Community.",
-  },
-];
+import { getTmdbLanguage } from "../../i18n/config";
 
 type MovieRankingRow = {
   tmdb_id: number;
@@ -86,7 +62,36 @@ function emptyRankings(): Record<
 }
 
 export default async function CommunityPage() {
+  const locale = await getLocale();
+  const t = await getTranslations({
+    locale,
+    namespace: "Community",
+  });
+  const tmdbLanguage = getTmdbLanguage(locale);
   const supabase = await createClient();
+
+  const features = [
+    {
+      icon: "💬",
+      title: t("featureChatTitle"),
+      description: t("featureChatDescription"),
+    },
+    {
+      icon: "🎬",
+      title: t("featureChannelsTitle"),
+      description: t("featureChannelsDescription"),
+    },
+    {
+      icon: "👥",
+      title: t("featureGroupsTitle"),
+      description: t("featureGroupsDescription"),
+    },
+    {
+      icon: "🍿",
+      title: t("featureRecommendationsTitle"),
+      description: t("featureRecommendationsDescription"),
+    },
+  ];
 
   const {
     data: { user },
@@ -181,7 +186,7 @@ export default async function CommunityPage() {
       )
     ) {
       rankingsError =
-        "Alcune classifiche non sono disponibili in questo momento.";
+        t("rankingsUnavailable");
     }
 
     const movieIds = Array.from(
@@ -208,7 +213,8 @@ export default async function CommunityPage() {
       await Promise.allSettled(
         movieIds.map(async (movieId) => {
           const movie = (await getMovie(
-            String(movieId)
+            String(movieId),
+            tmdbLanguage
           )) as MovieDetails;
 
           return [movieId, movie] as const;
@@ -219,7 +225,8 @@ export default async function CommunityPage() {
       await Promise.allSettled(
         seriesIds.map(async (seriesId) => {
           const series = (await getSeries(
-            String(seriesId)
+            String(seriesId),
+            tmdbLanguage
           )) as SeriesDetails;
 
           return [seriesId, series] as const;
@@ -277,7 +284,7 @@ export default async function CommunityPage() {
               title: movie.title,
               year: movie.release_date
                 ? movie.release_date.slice(0, 4)
-                : "N/D",
+                : t("notAvailable"),
               posterUrl: getPosterUrl(
                 movie.poster_path
               ),
@@ -324,7 +331,7 @@ export default async function CommunityPage() {
                     0,
                     4
                   )
-                : "N/D",
+                : t("notAvailable"),
               posterUrl: getPosterUrl(
                 series.poster_path
               ),
@@ -360,40 +367,37 @@ export default async function CommunityPage() {
         <div className="overflow-hidden rounded-[2rem] border border-[#7C3AED]/30 bg-gradient-to-br from-[#24153A] via-[#18181B] to-[#111827] p-8 md:p-12">
           <div className="max-w-3xl">
             <div className="inline-flex items-center rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-[#C4B5FD]">
-              Community
+              {t("community")}
             </div>
 
             <p className="mt-8 text-sm font-bold uppercase tracking-[0.22em] text-[#A78BFA]">
-              ViewVault Community
+              {t("viewVaultCommunity")}
             </p>
 
             <h1 className="mt-3 text-4xl font-black tracking-tight text-white md:text-6xl">
-              Il cinema è più bello insieme.
+              {t("heroTitle")}
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 md:text-xl">
-              Scopri cosa sta guardando la
-              community, confronta i titoli più
-              visti e trova nuove storie
-              attraverso gli utenti ViewVault.
+              {t("heroDescription")}
             </p>
           </div>
 
           <div className="mt-10 flex flex-wrap gap-3">
             <span className="rounded-full border border-zinc-700 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-300">
-              Classifiche
+              {t("rankings")}
             </span>
 
             <span className="rounded-full border border-zinc-700 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-300">
-              Amici
+              {t("friends")}
             </span>
 
             <span className="rounded-full border border-zinc-700 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-300">
-              Italia
+              {t("italy")}
             </span>
 
             <span className="rounded-full border border-zinc-700 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-300">
-              Mondo
+              {t("world")}
             </span>
           </div>
         </div>
@@ -416,18 +420,15 @@ export default async function CommunityPage() {
 
         <section className="mt-12">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#8B5CF6]">
-            In arrivo
+            {t("comingSoon")}
           </p>
 
           <h2 className="mt-2 text-3xl font-bold text-white">
-            Uno spazio costruito per la Community
+            {t("spaceBuiltForCommunity")}
           </h2>
 
           <p className="mt-3 max-w-2xl leading-7 text-zinc-400">
-            La Community di ViewVault crescerà
-            nel tempo con strumenti pensati per
-            mettere in contatto utenti con gusti,
-            passioni e visioni in comune.
+            {t("communityFutureDescription")}
           </p>
 
           <div className="mt-7 grid gap-5 md:grid-cols-2">
@@ -442,7 +443,7 @@ export default async function CommunityPage() {
                   </div>
 
                   <span className="rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#C4B5FD]">
-                    In arrivo
+                    {t("comingSoon")}
                   </span>
                 </div>
 
@@ -462,18 +463,18 @@ export default async function CommunityPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-3xl">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-                ViewVault Pro
+                {t("viewVaultPro")}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold text-white md:text-3xl">
-                Più spazio per vivere la Community.
+                {t("moreSpaceForCommunity")}
               </h2>
 
               <p className="mt-4 leading-7 text-zinc-300">
                 Alcune funzionalità avanzate
                 della Community potranno essere
                 riservate ai futuri piani
-                ViewVault Pro o Premium. Prezzi e
+                {t("viewVaultPro")} o Premium. Prezzi e
                 caratteristiche verranno definiti
                 più avanti, quando il servizio
                 sarà pronto.
@@ -486,11 +487,11 @@ export default async function CommunityPage() {
               </div>
 
               <p className="mt-2 font-bold text-white">
-                Pro / Premium
+                {t("proPremium")}
               </p>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Dettagli in arrivo
+                {t("detailsComingSoon")}
               </p>
             </div>
           </div>
@@ -498,24 +499,19 @@ export default async function CommunityPage() {
 
         <section className="mt-10 rounded-3xl border border-zinc-800 bg-[#18181B] p-7 md:p-9">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-            Nel frattempo
+            {t("inTheMeantime")}
           </p>
 
           <h2 className="mt-2 text-2xl font-bold text-white">
-            Le amicizie sono già attive.
+            {t("friendshipsActive")}
           </h2>
 
           <p className="mt-3 max-w-3xl leading-7 text-zinc-400">
-            Puoi già cercare altri utenti,
-            inviare richieste di amicizia,
-            accettarle, visitare i profili e
-            scoprire nuove persone nella
-            Community.
+            {t("friendshipsDescription")}
           </p>
 
           <p className="mt-4 text-sm font-semibold text-[#C4B5FD]">
-            Cerca un utente qui sopra e costruisci
-            la tua rete di amici su ViewVault.
+            {t("buildYourNetwork")}
           </p>
         </section>
       </section>

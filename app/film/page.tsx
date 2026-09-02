@@ -4,6 +4,8 @@ import {
   getTranslations,
 } from "next-intl/server";
 
+import { getTmdbLanguage } from "../../i18n/config";
+
 import AppHeader from "../../components/AppHeader";
 import BackButton from "../../components/BackButton";
 import MovieCard from "../../components/MovieCard";
@@ -65,6 +67,8 @@ export default async function FilmPage({
   );
 
   const locale = await getLocale();
+
+  const tmdbLanguage = getTmdbLanguage(locale);
 
   const params =
     await Promise.resolve(searchParams);
@@ -229,7 +233,8 @@ export default async function FilmPage({
     if (actorQuery) {
       const actor =
         await findActorByName(
-          actorQuery
+          actorQuery,
+          tmdbLanguage
         );
 
       if (actor) {
@@ -246,7 +251,7 @@ export default async function FilmPage({
 
     if (hasInvalidYearRange) {
       genres =
-        await getMovieGenres();
+        await getMovieGenres(tmdbLanguage);
     }
 
     /*
@@ -255,7 +260,7 @@ export default async function FilmPage({
 
     else if (actorNotFound) {
       genres =
-        await getMovieGenres();
+        await getMovieGenres(tmdbLanguage);
     }
 
     /*
@@ -267,17 +272,20 @@ export default async function FilmPage({
         catalogResponse,
         genreResponse,
       ] = await Promise.all([
-        discoverMovies({
-          page: currentPage,
-          genreId,
-          yearFrom,
-          yearTo,
-          actorId,
-          minVote,
-          sortBy,
-        }),
+        discoverMovies(
+          {
+            page: currentPage,
+            genreId,
+            yearFrom,
+            yearTo,
+            actorId,
+            minVote,
+            sortBy,
+          },
+          tmdbLanguage
+        ),
 
-        getMovieGenres(),
+        getMovieGenres(tmdbLanguage),
       ]);
 
       catalogMovies =
@@ -307,17 +315,20 @@ export default async function FilmPage({
         catalogResponse,
         genreResponse,
       ] = await Promise.all([
-        getTrendingMovies(),
-        getPopularMovies(1),
-        getTopRatedMovies(1),
-        getNowPlayingMovies(),
+        getTrendingMovies(tmdbLanguage),
+        getPopularMovies(1, tmdbLanguage),
+        getTopRatedMovies(1, tmdbLanguage),
+        getNowPlayingMovies(tmdbLanguage),
 
-        discoverMovies({
-          page: currentPage,
-          sortBy,
-        }),
+        discoverMovies(
+          {
+            page: currentPage,
+            sortBy,
+          },
+          tmdbLanguage
+        ),
 
-        getMovieGenres(),
+        getMovieGenres(tmdbLanguage),
       ]);
 
       trendingMovies =

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 export type RankingScope =
@@ -37,28 +38,6 @@ type RankingsSectionProps = {
   errorMessage?: string;
 };
 
-const scopeOptions: Array<{
-  value: RankingScope;
-  label: string;
-  icon: string;
-}> = [
-  {
-    value: "friends",
-    label: "Amici",
-    icon: "👥",
-  },
-  {
-    value: "country",
-    label: "Italia",
-    icon: "🇮🇹",
-  },
-  {
-    value: "world",
-    label: "Mondo",
-    icon: "🌍",
-  },
-];
-
 export default function RankingsSection({
   isLoggedIn,
   countryCode,
@@ -66,6 +45,9 @@ export default function RankingsSection({
   seriesRankings,
   errorMessage = "",
 }: RankingsSectionProps) {
+  const locale = useLocale();
+  const t = useTranslations("RankingsSection");
+
   const [scope, setScope] =
     useState<RankingScope>("world");
 
@@ -74,24 +56,31 @@ export default function RankingsSection({
 
   const countryLabel =
     countryCode?.toUpperCase() === "IT"
-      ? "Italia"
-      : "Il mio Paese";
+      ? t("italy")
+      : t("myCountry");
 
-  const currentScopeOptions = useMemo(
-    () =>
-      scopeOptions.map((option) =>
-        option.value === "country"
-          ? {
-              ...option,
-              label: countryLabel,
-              icon:
-                countryCode?.toUpperCase() === "IT"
-                  ? "🇮🇹"
-                  : "🌐",
-            }
-          : option
-      ),
-    [countryCode, countryLabel]
+  const scopeOptions = useMemo(
+    () => [
+      {
+        value: "friends" as const,
+        label: t("friends"),
+        icon: "👥",
+      },
+      {
+        value: "country" as const,
+        label: countryLabel,
+        icon:
+          countryCode?.toUpperCase() === "IT"
+            ? "🇮🇹"
+            : "🌐",
+      },
+      {
+        value: "world" as const,
+        label: t("world"),
+        icon: "🌍",
+      },
+    ],
+    [countryCode, countryLabel, t]
   );
 
   const currentItems =
@@ -105,18 +94,15 @@ export default function RankingsSection({
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-              🏆 Classifiche ViewVault
+              🏆 {t("viewVaultRankings")}
             </p>
 
             <h2 className="mt-2 text-3xl font-black text-white">
-              I titoli più visti dalla community
+              {t("mostWatchedTitles")}
             </h2>
 
             <p className="mt-3 max-w-3xl leading-7 text-zinc-400">
-              Classifiche costruite sulle visioni reali
-              registrate dagli utenti ViewVault. I profili
-              privati non contribuiscono alle graduatorie
-              pubbliche.
+              {t("description")}
             </p>
           </div>
 
@@ -130,7 +116,7 @@ export default function RankingsSection({
                   : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-[#7C3AED]/60"
               }`}
             >
-              🎬 Film
+              🎬 {t("movies")}
             </button>
 
             <button
@@ -142,13 +128,13 @@ export default function RankingsSection({
                   : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-[#7C3AED]/60"
               }`}
             >
-              📺 Serie TV
+              📺 {t("tvSeries")}
             </button>
           </div>
         </div>
 
         <div className="mt-7 flex flex-wrap gap-2">
-          {currentScopeOptions.map((option) => (
+          {scopeOptions.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -171,12 +157,11 @@ export default function RankingsSection({
             <p className="text-4xl">🔐</p>
 
             <h3 className="mt-4 text-xl font-bold text-white">
-              Accedi per vedere le classifiche
+              {t("loginToSeeRankings")}
             </h3>
 
             <p className="mx-auto mt-2 max-w-xl text-zinc-400">
-              Le classifiche Amici, Paese e Mondo sono
-              disponibili agli utenti autenticati.
+              {t("loginDescription")}
             </p>
           </div>
         ) : errorMessage && currentItems.length === 0 ? (
@@ -194,6 +179,7 @@ export default function RankingsSection({
               <RankingRow
                 key={`${item.mediaType}-${item.tmdbId}`}
                 item={item}
+                locale={locale}
               />
             ))}
           </div>
@@ -205,9 +191,13 @@ export default function RankingsSection({
 
 function RankingRow({
   item,
+  locale,
 }: {
   item: RankingItem;
+  locale: string;
 }) {
+  const t = useTranslations("RankingsSection");
+
   const href =
     item.mediaType === "movie"
       ? `/film/${item.tmdbId}`
@@ -247,13 +237,19 @@ function RankingRow({
         </p>
 
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-zinc-400 md:hidden">
-          <RankingMetrics item={item} />
+          <RankingMetrics
+            item={item}
+            locale={locale}
+          />
         </div>
       </div>
 
       <div className="hidden min-w-[220px] text-right md:block">
         <div className="flex flex-col gap-1 text-sm font-semibold text-zinc-300">
-          <RankingMetrics item={item} />
+          <RankingMetrics
+            item={item}
+            locale={locale}
+          />
         </div>
       </div>
     </Link>
@@ -262,21 +258,26 @@ function RankingRow({
 
 function RankingMetrics({
   item,
+  locale,
 }: {
   item: RankingItem;
+  locale: string;
 }) {
+  const t = useTranslations("RankingsSection");
+
   if (item.mediaType === "movie") {
     return (
       <>
         <span>
-          👁️ {item.totalViews ?? 0} visioni
+          👁️ {t("views", {
+            count: item.totalViews ?? 0,
+          })}
         </span>
 
         <span>
-          👥 {item.uniqueViewers}{" "}
-          {item.uniqueViewers === 1
-            ? "utente"
-            : "utenti"}
+          👥 {t("users", {
+            count: item.uniqueViewers,
+          })}
         </span>
       </>
     );
@@ -285,22 +286,24 @@ function RankingMetrics({
   return (
     <>
       <span>
-        🎞️{" "}
-        {formatEquivalentViews(
-          item.equivalentViews ?? 0
-        )}{" "}
-        visioni equivalenti
+        🎞️ {t("equivalentViews", {
+          count: formatEquivalentViews(
+            item.equivalentViews ?? 0,
+            locale
+          ),
+        })}
       </span>
 
       <span>
-        🍿 {item.episodeViews ?? 0} visioni episodio
+        🍿 {t("episodeViews", {
+          count: item.episodeViews ?? 0,
+        })}
       </span>
 
       <span>
-        👥 {item.uniqueViewers}{" "}
-        {item.uniqueViewers === 1
-          ? "utente"
-          : "utenti"}
+        👥 {t("users", {
+          count: item.uniqueViewers,
+        })}
       </span>
     </>
   );
@@ -313,19 +316,21 @@ function EmptyRanking({
   scope: RankingScope;
   mediaType: RankingMediaType;
 }) {
+  const t = useTranslations("RankingsSection");
+
   const title =
     scope === "friends"
-      ? "Nessun dato tra i tuoi amici"
+      ? t("emptyFriendsTitle")
       : scope === "country"
-        ? "Nessun dato per il tuo Paese"
-        : "La classifica è ancora vuota";
+        ? t("emptyCountryTitle")
+        : t("emptyWorldTitle");
 
   const description =
     scope === "friends"
-      ? "Quando i tuoi amici pubblici inizieranno a registrare le loro visioni, compariranno qui i titoli più guardati."
+      ? t("emptyFriendsDescription")
       : mediaType === "movie"
-        ? "Servono altre visioni di film per costruire questa classifica."
-        : "Servono altre visioni di episodi per costruire questa classifica.";
+        ? t("emptyMoviesDescription")
+        : t("emptySeriesDescription");
 
   return (
     <div className="rounded-3xl border border-dashed border-zinc-700 bg-black/20 px-6 py-12 text-center">
@@ -342,8 +347,11 @@ function EmptyRanking({
   );
 }
 
-function formatEquivalentViews(value: number) {
-  return new Intl.NumberFormat("it-IT", {
+function formatEquivalentViews(
+  value: number,
+  locale: string
+) {
+  return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);

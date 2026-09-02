@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "next/navigation";
 
@@ -42,6 +43,7 @@ export default function FriendshipButton({
   initialRequesterId,
   initialReceiverId,
 }: FriendshipButtonProps) {
+  const t = useTranslations("FriendshipButton");
   const router = useRouter();
 
   const supabase = useMemo(
@@ -363,7 +365,7 @@ export default function FriendshipButton({
       );
 
       setMessage(
-        "Non è stato possibile inviare la richiesta."
+        t("sendRequestError")
       );
 
       setIsLoading(false);
@@ -427,7 +429,7 @@ export default function FriendshipButton({
       );
 
       setMessage(
-        "Non è stato possibile accettare la richiesta."
+        t("acceptRequestError")
       );
 
       setIsLoading(false);
@@ -486,7 +488,7 @@ export default function FriendshipButton({
       );
 
       setMessage(
-        "Non è stato possibile rifiutare la richiesta."
+        t("rejectRequestError")
       );
 
       setIsLoading(false);
@@ -519,8 +521,8 @@ export default function FriendshipButton({
     const confirmed =
       window.confirm(
         status === "accepted"
-          ? "Vuoi rimuovere questa amicizia?"
-          : "Vuoi annullare la richiesta?"
+          ? t("confirmRemoveFriend")
+          : t("confirmCancelRequest")
       );
 
     if (!confirmed) {
@@ -546,7 +548,7 @@ export default function FriendshipButton({
       );
 
       setMessage(
-        "Non è stato possibile completare l'operazione."
+        t("operationError")
       );
 
       setIsLoading(false);
@@ -592,8 +594,8 @@ export default function FriendshipButton({
           className="rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading
-            ? "Invio..."
-            : "👤+ Aggiungi amico"}
+            ? t("sending")
+            : `👤+ ${t("addFriend")}`}
         </button>
 
         {message && (
@@ -609,7 +611,7 @@ export default function FriendshipButton({
     return (
       <div className="flex flex-col items-start gap-2">
         <div className="rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 px-6 py-3 font-bold text-[#C4B5FD]">
-          ⏳ Richiesta inviata
+          ⏳ {t("requestSent")}
         </div>
 
         <button
@@ -622,7 +624,7 @@ export default function FriendshipButton({
           }
           className="text-sm font-semibold text-zinc-500 transition hover:text-red-400"
         >
-          Annulla richiesta
+          {t("cancelRequest")}
         </button>
       </div>
     );
@@ -634,7 +636,7 @@ export default function FriendshipButton({
     return (
       <div>
         <p className="mb-3 text-sm font-semibold text-[#C4B5FD]">
-          👋 Richiesta di amicizia ricevuta
+          👋 {t("requestReceived")}
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -648,7 +650,7 @@ export default function FriendshipButton({
             }
             className="rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#2563EB] disabled:opacity-60"
           >
-            ✓ Accetta
+            ✓ {t("accept")}
           </button>
 
           <button
@@ -661,7 +663,7 @@ export default function FriendshipButton({
             }
             className="rounded-full border border-zinc-700 px-6 py-3 font-bold text-zinc-300 transition hover:border-red-500/60 hover:text-red-400 disabled:opacity-60"
           >
-            Rifiuta
+            {t("reject")}
           </button>
         </div>
 
@@ -680,7 +682,7 @@ export default function FriendshipButton({
     return (
       <div className="flex flex-col items-start gap-2">
         <div className="rounded-full border border-green-500/30 bg-green-500/10 px-6 py-3 font-bold text-green-400">
-          ✓ Amici nel Vault
+          ✓ {t("friendsInVault")}
         </div>
 
         <button
@@ -693,7 +695,7 @@ export default function FriendshipButton({
           }
           className="text-sm font-semibold text-zinc-500 transition hover:text-red-400"
         >
-          Rimuovi amico
+          {t("removeFriend")}
         </button>
       </div>
     );
@@ -710,7 +712,7 @@ export default function FriendshipButton({
       }
       className="rounded-full border border-zinc-700 px-6 py-3 font-bold text-zinc-300 transition hover:border-[#7C3AED]"
     >
-      Richiesta rifiutata · Rimuovi
+      {t("rejectedRemove")}
     </button>
   );
 }

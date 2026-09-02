@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import {
+  getLocale,
+  getTranslations,
+} from "next-intl/server";
 
 import AppHeader from "../../components/AppHeader";
 import BackButton from "../../components/BackButton";
@@ -15,6 +18,8 @@ import {
   getPosterUrl,
   getSeries,
 } from "../../lib/tmdb";
+
+import { getTmdbLanguage } from "../../i18n/config";
 
 type VaultStatus = "watched" | "watchlist";
 
@@ -60,7 +65,14 @@ type SeriesDetails = {
 };
 
 export default async function VaultPage() {
-  const t = await getTranslations("Vault");
+  const locale = await getLocale();
+
+  const t = await getTranslations({
+    locale,
+    namespace: "Vault",
+  });
+
+  const tmdbLanguage = getTmdbLanguage(locale);
 
   const supabase = await createClient();
 
@@ -181,7 +193,8 @@ export default async function VaultPage() {
       ): Promise<VaultMediaItem> => {
         if (vaultItem.media_type === "movie") {
           const movie = (await getMovie(
-            String(vaultItem.tmdb_id)
+            String(vaultItem.tmdb_id),
+            tmdbLanguage
           )) as MovieDetails;
 
           const storedWatchCount =
@@ -219,7 +232,8 @@ export default async function VaultPage() {
         }
 
         const series = (await getSeries(
-          String(vaultItem.tmdb_id)
+          String(vaultItem.tmdb_id),
+          tmdbLanguage
         )) as SeriesDetails;
 
         const progress =

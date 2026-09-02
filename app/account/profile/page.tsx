@@ -4,6 +4,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import type { User } from "@supabase/supabase-js";
 
 import Navbar from "../../../components/Navbar";
@@ -41,6 +42,21 @@ const GENRES = [
   "Animazione",
   "Documentario",
 ];
+
+const GENRE_KEYS: Record<string, string> = {
+  "Azione": "action",
+  "Avventura": "adventure",
+  "Horror": "horror",
+  "Thriller": "thriller",
+  "Commedia": "comedy",
+  "Drammatico": "drama",
+  "Fantascienza": "scienceFiction",
+  "Fantasy": "fantasy",
+  "Crime": "crime",
+  "Romance": "romance",
+  "Animazione": "animation",
+  "Documentario": "documentary",
+};
 
 const COUNTRIES = [
   { code: "IT", name: "Italia" },
@@ -236,9 +252,7 @@ const COUNTRIES = [
   { code: "ZA", name: "Sudafrica" },
   { code: "ZM", name: "Zambia" },
   { code: "ZW", name: "Zimbabwe" },
-].sort((first, second) =>
-  first.name.localeCompare(second.name, "it")
-);
+];
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
@@ -265,7 +279,28 @@ type MediaType = "avatar" | "cover";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("Profile");
   const supabase = useMemo(() => createClient(), []);
+  const regionNames = useMemo(
+    () => new Intl.DisplayNames([locale], { type: "region" }),
+    [locale]
+  );
+  const localizedCountries = useMemo(
+    () =>
+      COUNTRIES.map((country) => ({
+        ...country,
+        localizedName: regionNames.of(country.code) ?? country.code,
+      })).sort((a, b) =>
+        a.localizedName.localeCompare(b.localizedName, locale)
+      ),
+    [locale, regionNames]
+  );
+
+  function genreLabel(genre: string) {
+    const key = GENRE_KEYS[genre];
+    return key ? t(`genres.${key}`) : genre;
+  }
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -424,7 +459,7 @@ export default function ProfilePage() {
         );
 
         setMessage(
-          "Non è stato possibile caricare il profilo."
+          t("errors.loadProfile")
         );
 
         setHasError(true);
@@ -645,7 +680,7 @@ export default function ProfilePage() {
 
     if (!allowedTypes.includes(file.type)) {
       setMessage(
-        "Formato non supportato. Usa JPG, PNG oppure WebP."
+        t("errors.unsupportedFormat")
       );
 
       setHasError(true);
@@ -655,7 +690,7 @@ export default function ProfilePage() {
 
     if (file.size > MAX_IMAGE_SIZE) {
       setMessage(
-        "L'immagine non può superare 5 MB."
+        t("errors.maxImageSize")
       );
 
       setHasError(true);
@@ -751,7 +786,7 @@ export default function ProfilePage() {
   ) {
     if (!user) {
       throw new Error(
-        "Utente non autenticato."
+        t("errors.notAuthenticated")
       );
     }
 
@@ -800,7 +835,7 @@ export default function ProfilePage() {
 
     if (cleanUsername.length < 3) {
       setMessage(
-        "Lo username deve contenere almeno 3 caratteri."
+        t("errors.usernameMin")
       );
 
       setHasError(true);
@@ -812,7 +847,7 @@ export default function ProfilePage() {
       !/^[a-z0-9._]+$/.test(cleanUsername)
     ) {
       setMessage(
-        "Lo username può contenere solo lettere, numeri, punti e underscore."
+        t("errors.usernameCharacters")
       );
 
       setHasError(true);
@@ -822,7 +857,7 @@ export default function ProfilePage() {
 
     if (cleanUsername.length > 30) {
       setMessage(
-        "Lo username non può superare i 30 caratteri."
+        t("errors.usernameMax")
       );
 
       setHasError(true);
@@ -832,7 +867,7 @@ export default function ProfilePage() {
 
     if (cleanDisplayName.length > 50) {
       setMessage(
-        "Il nome visualizzato non può superare i 50 caratteri."
+        t("errors.displayNameMax")
       );
 
       setHasError(true);
@@ -842,7 +877,7 @@ export default function ProfilePage() {
 
     if (cleanBio.length > 300) {
       setMessage(
-        "La bio non può superare i 300 caratteri."
+        t("errors.bioMax")
       );
 
       setHasError(true);
@@ -923,7 +958,7 @@ export default function ProfilePage() {
       setSavedProfile(updatedProfile);
 
       setMessage(
-        "Profilo aggiornato correttamente."
+        t("success.updated")
       );
 
       setHasError(false);
@@ -944,11 +979,11 @@ export default function ProfilePage() {
 
       if (supabaseError.code === "23505") {
         setMessage(
-          "Questo username è già utilizzato. Scegline un altro."
+          t("errors.usernameTaken")
         );
       } else {
         setMessage(
-          "Non è stato possibile salvare il profilo. Riprova."
+          t("errors.saveProfile")
         );
       }
 
@@ -961,7 +996,7 @@ export default function ProfilePage() {
   const effectiveDisplayName =
     displayName.trim() ||
     username.trim() ||
-    "Utente ViewVault";
+    t("viewvaultUser");
 
   const profileInitial =
     effectiveDisplayName
@@ -981,7 +1016,7 @@ export default function ProfilePage() {
 
         <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
           <div className="rounded-3xl border border-zinc-800 bg-[#18181B] p-8 text-zinc-400">
-            Caricamento profilo...
+            {t("loading")}
           </div>
         </section>
       </main>
@@ -1017,7 +1052,7 @@ export default function ProfilePage() {
                     style={{
                       backgroundImage: `url("${displayedAvatar}")`,
                     }}
-                    aria-label={`Avatar di ${effectiveDisplayName}`}
+                    aria-label={t("avatarOf", { name: effectiveDisplayName })}
                   />
                 ) : (
                   <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-[#18181B] bg-[#7C3AED] text-4xl font-bold text-white shadow-2xl md:h-32 md:w-32">
@@ -1027,7 +1062,7 @@ export default function ProfilePage() {
 
                 <div className="pb-2">
                   <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#A78BFA]">
-                    Profilo ViewVault
+                    {t("profileViewVault")}
                   </p>
 
                   <h1 className="mt-2 text-4xl font-bold text-white md:text-5xl">
@@ -1041,7 +1076,7 @@ export default function ProfilePage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {countryCode && (
                       <span className="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1 text-xs font-bold text-zinc-300">
-                        🌍 {COUNTRIES.find((country) => country.code === countryCode)?.name ?? countryCode}
+                        🌍 {regionNames.of(countryCode) ?? countryCode}
                       </span>
                     )}
 
@@ -1052,7 +1087,7 @@ export default function ProfilePage() {
                           : "bg-zinc-800 text-zinc-300"
                       }`}
                     >
-                      {isPublic ? "🌐 Profilo pubblico" : "🔒 Profilo privato"}
+                      {isPublic ? t("publicProfileEmoji") : t("privateProfileEmoji")}
                     </span>
                   </div>
                 </div>
@@ -1067,7 +1102,7 @@ export default function ProfilePage() {
                   }}
                   className="mb-2 inline-flex w-fit items-center justify-center rounded-full bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#2563EB]"
                 >
-                  Modifica profilo
+                  {t("editProfile")}
                 </button>
               )}
             </div>
@@ -1083,7 +1118,7 @@ export default function ProfilePage() {
             {favoriteGenres.length > 0 && (
               <div className="mt-8">
                 <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Generi preferiti
+                  {t("favoriteGenres")}
                 </p>
 
                 <div className="flex flex-wrap gap-2">
@@ -1093,7 +1128,7 @@ export default function ProfilePage() {
                         key={genre}
                         className="rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 px-4 py-2 text-sm font-semibold text-[#C4B5FD]"
                       >
-                        {genre}
+                        {genreLabel(genre)}
                       </span>
                     )
                   )}
@@ -1108,15 +1143,15 @@ export default function ProfilePage() {
   <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-        Social
+        {t("social")}
       </p>
 
       <h2 className="mt-2 text-2xl font-bold text-white">
-        I miei amici
+        {t("myFriends")}
       </h2>
 
       <p className="mt-2 text-zinc-400">
-        Le persone con cui sei connesso su ViewVault.
+        {t("friendsDescription")}
       </p>
     </div>
 
@@ -1124,17 +1159,17 @@ export default function ProfilePage() {
   <Link
     href="/account/friends"
     className="rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-4 py-2 text-sm font-bold text-[#C4B5FD] transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/20"
-    title="Visualizza i miei amici"
+    title={t("viewMyFriends")}
   >
     {friends.length}{" "}
-    {friends.length === 1 ? "amico" : "amici"}
+    {t("friendCount", { count: friends.length })}
   </Link>
 
   <Link
     href="/account/friends"
     className="rounded-full border border-zinc-700 px-4 py-2 text-sm font-bold text-zinc-300 transition hover:border-[#7C3AED] hover:bg-[#7C3AED]/10 hover:text-[#C4B5FD]"
   >
-    Gestisci amici
+    {t("manageFriends")}
     </Link>
 </div>
 </div>
@@ -1200,12 +1235,11 @@ export default function ProfilePage() {
       <div className="text-4xl">👥</div>
 
       <p className="mt-4 font-bold text-white">
-        Nessun amico ancora
+        {t("noFriendsYet")}
       </p>
 
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
-        Quando aggiungerai altri utenti ViewVault,
-        compariranno qui.
+        {t("noFriendsDescription")}
       </p>
     </div>
   )}
@@ -1217,11 +1251,11 @@ export default function ProfilePage() {
             {/* INFORMAZIONI */}
             <section className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-                Modifica
+                {t("edit")}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold">
-                Informazioni personali
+                {t("personalInfo")}
               </h2>
 
               <div className="mt-6 space-y-5">
@@ -1248,7 +1282,7 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-zinc-300">
-                    Nome visualizzato
+                    {t("displayName")}
                   </label>
 
                   <input
@@ -1297,23 +1331,21 @@ export default function ProfilePage() {
             {/* NAZIONE E PRIVACY */}
             <section className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-                Profilo e privacy
+                {t("profileAndPrivacy")}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold">
-                Nazione e visibilità
+                {t("countryAndVisibility")}
               </h2>
 
               <p className="mt-3 max-w-2xl text-zinc-400">
-                La nazione servirà anche per classifiche e statistiche
-                geografiche. Puoi inoltre scegliere se rendere pubblico
-                o privato il tuo profilo ViewVault.
+                {t("countryPrivacyDescription")}
               </p>
 
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-zinc-300">
-                    Nazione
+                    {t("country")}
                   </label>
 
                   <select
@@ -1326,21 +1358,21 @@ export default function ProfilePage() {
                     className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-[#7C3AED]"
                   >
                     <option value="">
-                      Seleziona la nazione
+                      {t("selectCountry")}
                     </option>
 
-                    {COUNTRIES.map((country) => (
+                    {localizedCountries.map((country) => (
                       <option
                         key={country.code}
                         value={country.code}
                       >
-                        {country.name}
+                        {country.localizedName}
                       </option>
                     ))}
                   </select>
 
                   <p className="mt-2 text-xs leading-5 text-zinc-500">
-                    Nel database viene salvato il codice paese a due lettere.
+                    {t("countryCodeInfo")}
                   </p>
                 </div>
 
@@ -1349,14 +1381,14 @@ export default function ProfilePage() {
                     <div>
                       <p className="font-bold text-white">
                         {isPublic
-                          ? "🌐 Profilo pubblico"
-                          : "🔒 Profilo privato"}
+                          ? t("publicProfileEmoji")
+                          : t("privateProfileEmoji")}
                       </p>
 
                       <p className="mt-2 text-sm leading-6 text-zinc-400">
                         {isPublic
-                          ? "Gli altri utenti possono consultare il tuo profilo social ViewVault."
-                          : "Gli altri utenti vedranno solo le informazioni essenziali del profilo."}
+                          ? t("publicProfileDescription")
+                          : t("privateProfileDescription")}
                       </p>
                     </div>
 
@@ -1386,8 +1418,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="mt-4 rounded-xl border border-zinc-800 bg-black/20 p-4 text-xs leading-5 text-zinc-500">
-                    Email, dati di autenticazione e impostazioni account
-                    restano sempre privati.
+                    {t("accountPrivacyInfo")}
                   </div>
                 </div>
               </div>
@@ -1400,12 +1431,11 @@ export default function ProfilePage() {
               </p>
 
               <h2 className="mt-2 text-2xl font-bold">
-                Immagine profilo
+                {t("profileImage")}
               </h2>
 
               <p className="mt-3 text-zinc-400">
-                Scegli un avatar ViewVault
-                oppure carica una tua foto.
+                {t("avatarDescription")}
               </p>
 
               <div className="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-6">
@@ -1442,16 +1472,15 @@ export default function ProfilePage() {
 
               <div className="mt-6 rounded-2xl border border-dashed border-zinc-700 p-5">
                 <p className="font-semibold text-white">
-                  Foto personale
+                  {t("personalPhoto")}
                 </p>
 
                 <p className="mt-2 text-sm text-zinc-500">
-                  JPG, PNG o WebP.
-                  Dimensione massima 5 MB.
+                  {t("imageRequirements")}
                 </p>
 
                 <label className="mt-4 inline-flex cursor-pointer rounded-full bg-[#7C3AED] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2563EB]">
-                  Carica foto
+                  {t("uploadPhoto")}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -1477,23 +1506,22 @@ export default function ProfilePage() {
                 disabled={isSaving}
                 className="mt-5 rounded-full border border-zinc-700 px-5 py-2 text-sm font-semibold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
               >
-                Usa iniziale
+                {t("useInitial")}
               </button>
             </section>
 
             {/* COVER */}
             <section className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-                Copertina
+                {t("cover")}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold">
-                Sfondo del profilo
+                {t("profileBackground")}
               </h2>
 
               <p className="mt-3 text-zinc-400">
-                Scegli una cover ViewVault
-                oppure carica una tua immagine.
+                {t("coverDescription")}
               </p>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1530,16 +1558,15 @@ export default function ProfilePage() {
 
               <div className="mt-6 rounded-2xl border border-dashed border-zinc-700 p-5">
                 <p className="font-semibold text-white">
-                  Cover personale
+                  {t("personalCover")}
                 </p>
 
                 <p className="mt-2 text-sm text-zinc-500">
-                  JPG, PNG o WebP.
-                  Dimensione massima 5 MB.
+                  {t("imageRequirements")}
                 </p>
 
                 <label className="mt-4 inline-flex cursor-pointer rounded-full bg-[#7C3AED] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#2563EB]">
-                  Carica cover
+                  {t("uploadCover")}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -1565,18 +1592,18 @@ export default function ProfilePage() {
                 disabled={isSaving}
                 className="mt-5 rounded-full border border-zinc-700 px-5 py-2 text-sm font-semibold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
               >
-                Usa sfumatura ViewVault
+                {t("useViewVaultGradient")}
               </button>
             </section>
 
             {/* GENERI */}
             <section className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-                Preferenze
+                {t("preferences")}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold">
-                Generi preferiti
+                {t("favoriteGenres")}
               </h2>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -1600,7 +1627,7 @@ export default function ProfilePage() {
                           : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-[#7C3AED]"
                       }`}
                     >
-                      {genre}
+                      {genreLabel(genre)}
                     </button>
                   );
                 })}
@@ -1622,7 +1649,7 @@ export default function ProfilePage() {
                 disabled={isSaving}
                 className="rounded-full border border-zinc-700 px-7 py-3 font-bold text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:opacity-60"
               >
-                Annulla
+                {t("cancel")}
               </button>
 
               <button
@@ -1632,8 +1659,8 @@ export default function ProfilePage() {
                 className="rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving
-                  ? "Caricamento e salvataggio..."
-                  : "Salva modifiche"}
+                  ? t("saving")
+                  : t("saveChanges")}
               </button>
             </div>
           </div>

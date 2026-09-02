@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 import GiphyPicker from "./GiphyPicker";
@@ -43,6 +44,8 @@ export default function MediaComments({
   mediaType,
 }: MediaCommentsProps) {
   const supabase = useMemo(() => createClient(), []);
+  const t = useTranslations("MediaComments");
+  const locale = useLocale();
 
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(
@@ -122,7 +125,7 @@ export default function MediaComments({
       );
 
       setMessage(
-        "Non è stato possibile caricare i commenti."
+        t("loadCommentsError")
       );
       setHasError(true);
       setComments([]);
@@ -132,7 +135,7 @@ export default function MediaComments({
 
     setComments((data as CommentRow[] | null) ?? []);
     setIsLoading(false);
-  }, [mediaType, supabase, tmdbId]);
+  }, [mediaType, supabase, t, tmdbId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -182,7 +185,7 @@ export default function MediaComments({
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setMessage(
-        "Formato non supportato. Usa JPG, PNG, WEBP o GIF."
+        t("unsupportedImageFormat")
       );
       setHasError(true);
       event.target.value = "";
@@ -191,7 +194,7 @@ export default function MediaComments({
 
     if (file.size > MAX_IMAGE_SIZE) {
       setMessage(
-        "L'immagine non può superare 5 MB."
+        t("imageTooLarge")
       );
       setHasError(true);
       event.target.value = "";
@@ -243,7 +246,7 @@ export default function MediaComments({
       );
 
       throw new Error(
-        "Non è stato possibile caricare l'immagine."
+        t("uploadImageError")
       );
     }
 
@@ -271,7 +274,7 @@ export default function MediaComments({
 
     if (userError || !user) {
       setMessage(
-        "Effettua il login per partecipare alla discussione."
+        t("loginRequired")
       );
       setHasError(true);
       return;
@@ -282,7 +285,7 @@ export default function MediaComments({
 
     if (!cleanContent && !cleanGifUrl && !imageFile) {
       setMessage(
-        "Scrivi un commento oppure aggiungi una GIF o un'immagine."
+        t("emptyCommentError")
       );
       setHasError(true);
       return;
@@ -320,13 +323,13 @@ export default function MediaComments({
         );
 
         throw new Error(
-          "Non è stato possibile pubblicare il commento."
+          t("publishCommentError")
         );
       }
 
       resetComposer();
 
-      setMessage("Commento pubblicato.");
+      setMessage(t("commentPublished"));
       setHasError(false);
 
       await loadComments();
@@ -336,7 +339,7 @@ export default function MediaComments({
       setMessage(
         error instanceof Error
           ? error.message
-          : "Si è verificato un errore."
+          : t("genericError")
       );
 
       setHasError(true);
@@ -384,7 +387,7 @@ export default function MediaComments({
       !currentComment.image_url
     ) {
       setMessage(
-        "Il commento non può essere completamente vuoto."
+        t("emptyEditError")
       );
       setHasError(true);
       return;
@@ -411,7 +414,7 @@ export default function MediaComments({
       );
 
       setMessage(
-        "Non è stato possibile modificare il commento."
+        t("editCommentError")
       );
       setHasError(true);
       setSavingCommentId(null);
@@ -420,7 +423,7 @@ export default function MediaComments({
 
     cancelEditing();
 
-    setMessage("Commento modificato.");
+    setMessage(t("commentEdited"));
 
     await loadComments();
 
@@ -433,7 +436,7 @@ export default function MediaComments({
     }
 
     const confirmed = window.confirm(
-      "Vuoi eliminare questo commento?"
+      t("confirmDelete")
     );
 
     if (!confirmed) {
@@ -456,7 +459,7 @@ export default function MediaComments({
       );
 
       setMessage(
-        "Non è stato possibile eliminare il commento."
+        t("deleteCommentError")
       );
       setHasError(true);
       setSavingCommentId(null);
@@ -483,7 +486,7 @@ export default function MediaComments({
       }
     }
 
-    setMessage("Commento eliminato.");
+    setMessage(t("commentDeleted"));
 
     await loadComments();
 
@@ -512,12 +515,11 @@ export default function MediaComments({
         </p>
 
         <h2 className="mt-2 text-3xl font-bold">
-          💬 Discussione
+          {t("discussion")}
         </h2>
 
         <p className="mt-3 max-w-3xl leading-7 text-zinc-400">
-          Condividi cosa ne pensi con gli altri utenti.
-          Puoi aggiungere testo, emoji, GIF o una foto.
+          {t("discussionDescription")}
         </p>
       </div>
 
@@ -530,7 +532,7 @@ export default function MediaComments({
             }
             rows={4}
             maxLength={2000}
-            placeholder="Scrivi qualcosa..."
+            placeholder={t("writeSomething")}
             className="w-full resize-none rounded-2xl border border-zinc-700 bg-[#101010] px-5 py-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-[#7C3AED]"
           />
 
@@ -558,11 +560,11 @@ export default function MediaComments({
             <div className="mt-4 rounded-2xl border border-dashed border-zinc-700 bg-black/20 p-5">
               <label className="block cursor-pointer text-center">
                 <span className="font-semibold text-zinc-300">
-                  🖼️ Seleziona un'immagine
+                  {t("selectImage")}
                 </span>
 
                 <span className="mt-1 block text-xs text-zinc-500">
-                  JPG, PNG, WEBP o GIF · massimo 5 MB
+                  {t("imageRequirements")}
                 </span>
 
                 <input
@@ -579,7 +581,7 @@ export default function MediaComments({
             <div className="relative mt-4 w-fit">
               <img
                 src={imagePreview}
-                alt="Anteprima immagine"
+                alt={t("imagePreviewAlt")}
                 className="max-h-72 rounded-2xl border border-zinc-800 object-cover"
               />
 
@@ -587,7 +589,7 @@ export default function MediaComments({
                 type="button"
                 onClick={removeSelectedImage}
                 className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/80 font-bold text-white transition hover:bg-red-600"
-                aria-label="Rimuovi immagine"
+                aria-label={t("removeImage")}
               >
                 ×
               </button>
@@ -603,7 +605,7 @@ export default function MediaComments({
                 }
                 className="rounded-full border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
               >
-                {gifUrl ? "✓ GIF selezionata" : "GIF"}
+                {gifUrl ? t("gifSelected") : t("gif")}
               </button>
 
               <button
@@ -613,7 +615,7 @@ export default function MediaComments({
                 }
                 className="rounded-full border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
               >
-                🖼️ Foto
+                {t("photo")}
               </button>
 
               <label className="flex cursor-pointer items-center gap-2 rounded-full border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300">
@@ -626,7 +628,7 @@ export default function MediaComments({
                   className="accent-[#7C3AED]"
                 />
 
-                ⚠️ Spoiler
+                {t("spoiler")}
               </label>
             </div>
 
@@ -637,8 +639,8 @@ export default function MediaComments({
               className="rounded-full bg-[#7C3AED] px-7 py-3 font-bold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isPublishing
-                ? "Pubblicazione..."
-                : "Pubblica"}
+                ? t("publishing")
+                : t("publish")}
             </button>
           </div>
         </div>
@@ -647,12 +649,11 @@ export default function MediaComments({
           <p className="text-3xl">🔐</p>
 
           <p className="mt-3 font-bold text-white">
-            Accedi per partecipare alla discussione
+            {t("loginToJoin")}
           </p>
 
           <p className="mt-2 text-sm text-zinc-400">
-            Puoi leggere i commenti, ma devi effettuare
-            il login per pubblicarne uno.
+            {t("loginToPublish")}
           </p>
         </div>
       )}
@@ -672,7 +673,7 @@ export default function MediaComments({
       <div className="mt-8">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h3 className="text-xl font-bold">
-            Commenti
+            {t("comments")}
           </h3>
 
           {!isLoading && (
@@ -684,18 +685,18 @@ export default function MediaComments({
 
         {isLoading ? (
           <div className="rounded-3xl border border-zinc-800 bg-[#18181B] p-8 text-center text-zinc-400">
-            Caricamento commenti...
+            {t("loadingComments")}
           </div>
         ) : comments.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-zinc-700 bg-[#18181B] px-6 py-12 text-center">
             <p className="text-4xl">🍿</p>
 
             <h3 className="mt-4 text-xl font-bold">
-              Ancora nessun commento
+              {t("noComments")}
             </h3>
 
             <p className="mt-2 text-zinc-400">
-              Inizia tu la discussione.
+              {t("startDiscussion")}
             </p>
           </div>
         ) : (
@@ -724,7 +725,7 @@ export default function MediaComments({
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="font-bold text-white">
-                            {getDisplayName(comment)}
+                            {getDisplayName(comment, t("viewVaultUser"))}
                           </p>
 
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
@@ -736,18 +737,19 @@ export default function MediaComments({
 
                             <span>
                               {formatDate(
-                                comment.created_at
+                                comment.created_at,
+                                locale
                               )}
                             </span>
 
                             {comment.updated_at !==
                               comment.created_at && (
-                              <span>· modificato</span>
+                              <span>{t("edited")}</span>
                             )}
 
                             {comment.is_spoiler && (
                               <span className="font-bold text-amber-400">
-                                ⚠️ Spoiler
+                                {t("spoiler")}
                               </span>
                             )}
                           </div>
@@ -762,7 +764,7 @@ export default function MediaComments({
                               }
                               className="text-sm font-semibold text-zinc-400 transition hover:text-[#C4B5FD]"
                             >
-                              Modifica
+                              {t("edit")}
                             </button>
 
                             <button
@@ -776,7 +778,7 @@ export default function MediaComments({
                               }
                               className="text-sm font-semibold text-zinc-400 transition hover:text-red-400 disabled:opacity-50"
                             >
-                              Elimina
+                              {t("delete")}
                             </button>
                           </div>
                         )}
@@ -804,7 +806,7 @@ export default function MediaComments({
                                 event.target.value
                               )
                             }
-                            placeholder="URL GIF"
+                            placeholder={t("gifUrl")}
                             className="w-full rounded-2xl border border-zinc-700 bg-[#101010] px-4 py-3 text-white outline-none focus:border-[#7C3AED]"
                           />
 
@@ -820,7 +822,7 @@ export default function MediaComments({
                               className="accent-[#7C3AED]"
                             />
 
-                            ⚠️ Contiene spoiler
+                            {t("containsSpoilers")}
                           </label>
 
                           <div className="flex flex-wrap gap-2">
@@ -837,8 +839,8 @@ export default function MediaComments({
                             >
                               {savingCommentId ===
                               comment.id
-                                ? "Salvataggio..."
-                                : "Salva"}
+                                ? t("saving")
+                                : t("save")}
                             </button>
 
                             <button
@@ -846,7 +848,7 @@ export default function MediaComments({
                               onClick={cancelEditing}
                               className="rounded-full border border-zinc-700 px-5 py-2 text-sm font-bold text-zinc-300"
                             >
-                              Annulla
+                              {t("cancel")}
                             </button>
                           </div>
                         </div>
@@ -860,12 +862,11 @@ export default function MediaComments({
                           className="mt-5 w-full rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-8 text-center"
                         >
                           <span className="block font-bold text-amber-300">
-                            ⚠️ Questo commento contiene
-                            spoiler
+                            {t("spoilerWarning")}
                           </span>
 
                           <span className="mt-2 block text-sm text-zinc-400">
-                            Clicca per mostrarlo
+                            {t("clickToReveal")}
                           </span>
                         </button>
                       ) : (
@@ -890,6 +891,8 @@ function CommentContent({
 }: {
   comment: CommentRow;
 }) {
+  const t = useTranslations("MediaComments");
+
   return (
     <div className="mt-5">
       {comment.content && (
@@ -901,7 +904,7 @@ function CommentContent({
       {comment.gif_url && (
         <img
           src={comment.gif_url}
-          alt="GIF del commento"
+          alt={t("commentGifAlt")}
           className="mt-4 max-h-[420px] max-w-full rounded-2xl border border-zinc-800 object-contain"
         />
       )}
@@ -909,7 +912,7 @@ function CommentContent({
       {comment.image_url && (
         <img
           src={comment.image_url}
-          alt="Immagine del commento"
+          alt={t("commentImageAlt")}
           className="mt-4 max-h-[520px] max-w-full rounded-2xl border border-zinc-800 object-contain"
         />
       )}
@@ -922,19 +925,20 @@ function UserAvatar({
 }: {
   comment: CommentRow;
 }) {
+  const t = useTranslations("MediaComments");
+  const displayName = getDisplayName(comment, t("viewVaultUser"));
+
   if (comment.avatar_url) {
     return (
       <img
         src={comment.avatar_url}
-        alt={getDisplayName(comment)}
+        alt={displayName}
         className="h-11 w-11 shrink-0 rounded-full border border-zinc-700 object-cover"
       />
     );
   }
 
-  const initial = getDisplayName(comment)
-    .charAt(0)
-    .toUpperCase();
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#7C3AED] text-lg font-black text-white">
@@ -943,16 +947,19 @@ function UserAvatar({
   );
 }
 
-function getDisplayName(comment: CommentRow) {
+function getDisplayName(
+  comment: CommentRow,
+  fallbackName: string
+) {
   return (
     comment.display_name ||
     comment.username ||
-    "Utente ViewVault"
+    fallbackName
   );
 }
 
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat("it-IT", {
+function formatDate(date: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "short",
     year: "numeric",

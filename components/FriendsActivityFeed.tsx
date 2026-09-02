@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 
@@ -80,6 +81,9 @@ const EPISODE_GROUP_WINDOW_MS =
   6 * 60 * 60 * 1000;
 
 export default function FriendsActivityFeed() {
+  const locale = useLocale();
+  const t = useTranslations("FriendsActivityFeed");
+
   const supabase = useMemo(
     () => createClient(),
     []
@@ -207,7 +211,7 @@ export default function FriendsActivityFeed() {
               mediaType: media.mediaType,
               title:
                 title ??
-                "Contenuto ViewVault",
+                t("viewVaultContent"),
               posterUrl: result.poster_path
                 ? `https://image.tmdb.org/t/p/w342${result.poster_path}`
                 : null,
@@ -264,12 +268,12 @@ export default function FriendsActivityFeed() {
       setItems([]);
 
       setErrorMessage(
-        "Non è stato possibile caricare le attività degli amici."
+        t("loadFeedError")
       );
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, t]);
 
   useEffect(() => {
     loadFeed();
@@ -295,17 +299,15 @@ export default function FriendsActivityFeed() {
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-              La tua rete
+              {t("yourNetwork")}
             </p>
 
             <h2 className="mt-2 text-3xl font-black text-white">
-              👥 Attività degli amici
+              👥 {t("friendsActivity")}
             </h2>
 
             <p className="mt-3 max-w-2xl leading-7 text-zinc-400">
-              Scopri cosa stanno guardando e
-              commentando i tuoi amici su
-              ViewVault.
+              {t("description")}
             </p>
           </div>
 
@@ -316,8 +318,8 @@ export default function FriendsActivityFeed() {
             className="w-fit rounded-full border border-zinc-700 px-5 py-3 text-sm font-bold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading
-              ? "Aggiornamento..."
-              : "↻ Aggiorna"}
+              ? t("updating")
+              : `↻ ${t("refresh")}`}
           </button>
         </div>
       </div>
@@ -331,7 +333,7 @@ export default function FriendsActivityFeed() {
 
         {isLoading ? (
           <div className="rounded-3xl border border-zinc-800 bg-black/20 px-6 py-14 text-center text-zinc-400">
-            Caricamento attività...
+            {t("loadingActivity")}
           </div>
         ) : items.length === 0 ? (
           <EmptyFeed />
@@ -381,16 +383,18 @@ function ActivityCard({
   spoilerVisible: boolean;
   onToggleSpoiler: () => void;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("FriendsActivityFeed");
   const profile = item.profile;
 
   const displayName =
     profile?.display_name ||
     profile?.username ||
-    "Utente ViewVault";
+    t("viewVaultUser");
 
   const mediaTitle =
     item.media?.title ??
-    "Contenuto ViewVault";
+    t("viewVaultContent");
 
   const mediaHref =
     item.media_type === "movie"
@@ -409,7 +413,8 @@ function ActivityCard({
                 episodeNumber:
                   item.episode_number,
               },
-            ]
+            ],
+          (count) => t("episodeCount", { count })
         )
       : null;
 
@@ -463,8 +468,12 @@ function ActivityCard({
                     {activityIcon(
                       item.activity_type
                     )}{" "}
-                    {activityLabel(
-                      item.activity_type
+                    {t(
+                      item.activity_type === "movie_watch"
+                        ? "movie"
+                        : item.activity_type === "episode_watch"
+                          ? "tvSeries"
+                          : "comment"
                     )}
                   </span>
                 )}
@@ -473,7 +482,8 @@ function ActivityCard({
 
                 <span>
                   {formatRelativeDate(
-                    item.occurred_at
+                    item.occurred_at,
+                    locale
                   )}
                 </span>
 
@@ -482,7 +492,7 @@ function ActivityCard({
                     <span>·</span>
 
                     <span className="text-amber-400">
-                      ⚠️ Spoiler
+                      ⚠️ {t("spoiler")}
                     </span>
                   </>
                 )}
@@ -506,12 +516,11 @@ function ActivityCard({
                   className="w-full rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-7 text-center transition hover:bg-amber-500/15"
                 >
                   <span className="block font-bold text-amber-300">
-                    ⚠️ Questo commento
-                    contiene spoiler
+                    ⚠️ {t("commentContainsSpoiler")}
                   </span>
 
                   <span className="mt-2 block text-sm text-zinc-400">
-                    Clicca per mostrarlo
+                    {t("clickToReveal")}
                   </span>
                 </button>
               ) : (
@@ -540,69 +549,51 @@ function ActivitySentence({
   mediaTitle: string;
   mediaHref: string;
 }) {
-  if (
-    item.activity_type ===
-    "movie_watch"
-  ) {
-    return (
-      <>
-        ha visto{" "}
-        <MediaLink
-          href={mediaHref}
-          title={mediaTitle}
-        />
-      </>
-    );
+  const t = useTranslations("FriendsActivityFeed");
+
+  const media = (
+    <MediaLink
+      href={mediaHref}
+      title={mediaTitle}
+    />
+  );
+
+  if (item.activity_type === "movie_watch") {
+    return t.rich("watchedMovie", {
+      media: () => media,
+    });
   }
 
-  if (
-    item.activity_type ===
-    "episode_watch"
-  ) {
+  if (item.activity_type === "episode_watch") {
     const episodeCount =
       item.groupedEpisodes?.length ?? 1;
 
     if (episodeCount > 1) {
-      return (
-        <>
-          ha guardato{" "}
+      return t.rich("watchedEpisodesOf", {
+        count: episodeCount,
+        media: () => media,
+        strong: (chunks) => (
           <strong className="text-white">
-            {episodeCount} episodi
-          </strong>{" "}
-          di{" "}
-          <MediaLink
-            href={mediaHref}
-            title={mediaTitle}
-          />
-        </>
-      );
+            {chunks}
+          </strong>
+        ),
+      });
     }
 
-    return (
-      <>
-        ha guardato{" "}
+    return t.rich("watchedEpisodeOf", {
+      episode: `S${item.season_number ?? "?"} E${item.episode_number ?? "?"}`,
+      media: () => media,
+      strong: (chunks) => (
         <strong className="text-white">
-          S{item.season_number ?? "?"} E
-          {item.episode_number ?? "?"}
-        </strong>{" "}
-        di{" "}
-        <MediaLink
-          href={mediaHref}
-          title={mediaTitle}
-        />
-      </>
-    );
+          {chunks}
+        </strong>
+      ),
+    });
   }
 
-  return (
-    <>
-      ha commentato{" "}
-      <MediaLink
-        href={mediaHref}
-        title={mediaTitle}
-      />
-    </>
-  );
+  return t.rich("commentedOn", {
+    media: () => media,
+  });
 }
 
 /*
@@ -716,6 +707,8 @@ function CommentPreview({
 }: {
   item: FeedItem;
 }) {
+  const t = useTranslations("FriendsActivityFeed");
+
   return (
     <div className="rounded-2xl border border-zinc-800 bg-[#111111] p-4">
       {item.content && (
@@ -727,7 +720,7 @@ function CommentPreview({
       {item.gif_url && (
         <img
           src={item.gif_url}
-          alt="GIF del commento"
+          alt={t("commentGifAlt")}
           className="mt-4 max-h-72 max-w-full rounded-xl border border-zinc-800 object-contain"
         />
       )}
@@ -735,7 +728,7 @@ function CommentPreview({
       {item.image_url && (
         <img
           src={item.image_url}
-          alt="Immagine del commento"
+          alt={t("commentImageAlt")}
           className="mt-4 max-h-80 max-w-full rounded-xl border border-zinc-800 object-contain"
         />
       )}
@@ -748,6 +741,8 @@ function CommentPreview({
  */
 
 function EmptyFeed() {
+  const t = useTranslations("FriendsActivityFeed");
+
   return (
     <div className="rounded-3xl border border-dashed border-zinc-700 bg-black/20 px-6 py-14 text-center">
       <div className="text-4xl">
@@ -755,14 +750,11 @@ function EmptyFeed() {
       </div>
 
       <h3 className="mt-4 text-xl font-bold text-white">
-        Il feed è ancora tranquillo
+        {t("emptyFeedTitle")}
       </h3>
 
       <p className="mx-auto mt-2 max-w-xl leading-7 text-zinc-500">
-        Quando i tuoi amici pubblici
-        guarderanno film o serie e
-        parteciperanno alle discussioni, le
-        loro attività appariranno qui.
+        {t("emptyFeedDescription")}
       </p>
     </div>
   );
@@ -901,7 +893,8 @@ function groupEpisodeActivities(
  */
 
 function formatEpisodeSummary(
-  episodes: EpisodeReference[]
+  episodes: EpisodeReference[],
+  formatEpisodeCount: (count: number) => string
 ) {
   const seasons = new Map<
     number,
@@ -932,11 +925,9 @@ function formatEpisodeSummary(
   }
 
   if (seasons.size === 0) {
-    return `${episodes.length} ${
-      episodes.length === 1
-        ? "episodio"
-        : "episodi"
-    }`;
+    return formatEpisodeCount(
+      episodes.length
+    );
   }
 
   return Array.from(
@@ -1095,27 +1086,14 @@ function activityIcon(
   }
 }
 
-function activityLabel(
-  type: ActivityType
-) {
-  switch (type) {
-    case "movie_watch":
-      return "Film";
-
-    case "episode_watch":
-      return "Serie TV";
-
-    case "comment":
-      return "Commento";
-  }
-}
 
 /*
  * DATA RELATIVA
  */
 
 function formatRelativeDate(
-  date: string
+  date: string,
+  locale: string
 ) {
   const target =
     new Date(date);
@@ -1135,7 +1113,7 @@ function formatRelativeDate(
 
   const formatter =
     new Intl.RelativeTimeFormat(
-      "it",
+      locale,
       {
         numeric: "auto",
       }
@@ -1191,7 +1169,7 @@ function formatRelativeDate(
   }
 
   return new Intl.DateTimeFormat(
-    "it-IT",
+    locale,
     {
       day: "2-digit",
       month: "short",

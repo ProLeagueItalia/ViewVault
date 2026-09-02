@@ -891,4 +891,4 @@ function getValidMediaType(
   }
 
   return null;
-}
+}   

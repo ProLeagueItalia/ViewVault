@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import Navbar from "../../components/Navbar";
 import BackButton from "../../components/BackButton";
@@ -8,6 +9,7 @@ import {
   getMovie,
   getSeries,
 } from "../../lib/tmdb";
+import { getTmdbLanguage } from "../../i18n/config";
 
 type VaultItem = {
   id: string;
@@ -104,21 +106,6 @@ type AchievementDefinition = {
   base: number;
 };
 
-const MONTH_LABELS = [
-  "Gen",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Mag",
-  "Giu",
-  "Lug",
-  "Ago",
-  "Set",
-  "Ott",
-  "Nov",
-  "Dic",
-];
-
 function getStartOfMonth(date: Date) {
   return new Date(
     date.getFullYear(),
@@ -199,7 +186,7 @@ function calculateVariation(
 function normalizeGenreName(value: string) {
   return value
     .trim()
-    .toLocaleLowerCase("it-IT");
+    .toLocaleLowerCase();
 }
 
 /*
@@ -320,6 +307,9 @@ function toRomanNumeral(value: number) {
 }
 
 export default async function DashboardPage() {
+  const locale = await getLocale();
+  const t = await getTranslations({ locale, namespace: "Dashboard" });
+  const tmdbLanguage = getTmdbLanguage(locale);
   const supabase = await createClient();
 
   const {
@@ -643,8 +633,14 @@ export default async function DashboardPage() {
    * ANDAMENTO MENSILE
    */
   const monthlyActivity: MonthlyActivity[] =
-    MONTH_LABELS.map(
-      (monthLabel, monthIndex) => {
+    Array.from({ length: 12 }, (_, monthIndex) => {
+      const monthLabel = new Intl.DateTimeFormat(locale, {
+        month: "short",
+      }).format(new Date(now.getFullYear(), monthIndex, 1));
+
+      return { monthLabel, monthIndex };
+    }).map(
+      ({ monthLabel, monthIndex }) => {
         const monthStart = new Date(
           now.getFullYear(),
           monthIndex,
@@ -740,7 +736,8 @@ export default async function DashboardPage() {
         async (movieId) => {
           try {
             return (await getMovie(
-              String(movieId)
+              String(movieId),
+              tmdbLanguage
             )) as TMDBContentDetails;
           } catch (error) {
             console.error(
@@ -759,7 +756,8 @@ export default async function DashboardPage() {
         async (seriesId) => {
           try {
             return (await getSeries(
-              String(seriesId)
+              String(seriesId),
+              tmdbLanguage
             )) as TMDBContentDetails;
           } catch (error) {
             console.error(
@@ -891,7 +889,7 @@ export default async function DashboardPage() {
 
         return first.name.localeCompare(
           second.name,
-          "it"
+          locale
         );
       });
 
@@ -1034,7 +1032,8 @@ export default async function DashboardPage() {
           (await getMovie(
             String(
               mostRewatchedMovie.tmdbId
-            )
+            ),
+            tmdbLanguage
           )) as TMDBContentDetails;
       } catch (error) {
         console.error(
@@ -1048,7 +1047,7 @@ export default async function DashboardPage() {
   const mostRewatchedMovieTitle =
     mostRewatchedMovieDetails?.title ??
     (mostRewatchedMovie
-      ? `Film #${mostRewatchedMovie.tmdbId}`
+      ? t("movieFallback", { id: mostRewatchedMovie.tmdbId })
       : null);
 
   /*
@@ -1169,42 +1168,42 @@ export default async function DashboardPage() {
     AchievementDefinition[] = [
       {
         key: "cinefilo",
-        title: "Cinefilo",
+        title: t("achievementCinephile"),
         icon: "🎬",
         value: filmsWatched,
-        unit: "film visti",
+        unit: t("unitMoviesWatched"),
         base: 10,
       },
       {
         key: "maratoneta",
-        title: "Maratoneta",
+        title: t("achievementMarathoner"),
         icon: "📺",
         value: watchedEpisodes,
-        unit: "episodi visti",
+        unit: t("unitEpisodesWatched"),
         base: 25,
       },
       {
         key: "seriale",
-        title: "Seriale",
+        title: t("achievementSerial"),
         icon: "✅",
         value: completedSeries,
-        unit: "serie completate",
+        unit: t("unitSeriesCompleted"),
         base: 2,
       },
       {
         key: "critico",
-        title: "Critico",
+        title: t("achievementCritic"),
         icon: "⭐",
         value: ratedContents.length,
-        unit: "valutazioni",
+        unit: t("unitRatings"),
         base: 5,
       },
       {
         key: "recensore",
-        title: "Recensore",
+        title: t("achievementReviewer"),
         icon: "✍️",
         value: reviewsCount,
-        unit: "recensioni",
+        unit: t("unitReviews"),
         base: 5,
       },
       {
@@ -1212,7 +1211,7 @@ export default async function DashboardPage() {
         title: "Déjà View",
         icon: "🔁",
         value: totalRewatchEvents,
-        unit: "rewatch",
+        unit: t("unitRewatch"),
         base: 1,
       },
     ];
@@ -1268,7 +1267,7 @@ export default async function DashboardPage() {
     metadata.user_name ||
     metadata.preferred_username ||
     user.email?.split("@")[0] ||
-    "Utente";
+    t("user");
 
   const avatarUrl =
     profile?.avatar_url ||
@@ -1278,34 +1277,34 @@ export default async function DashboardPage() {
 
   const stats: StatCard[] = [
     {
-      label: "Film visti",
+      label: t("moviesWatched"),
       value: String(filmsWatched),
       icon: "🎬",
-      description: "Film completati",
+      description: t("completedMovies"),
     },
     {
-      label: "Serie completate",
+      label: t("completedSeries"),
       value: String(completedSeries),
       icon: "✅",
-      description: "Serie viste fino alla fine",
+      description: t("seriesWatchedToEnd"),
     },
     {
-      label: "Episodi visti",
+      label: t("episodesWatched"),
       value: String(watchedEpisodes),
       icon: "📺",
-      description: "Episodi completati",
+      description: t("completedEpisodes"),
     },
     {
-      label: "Serie in corso",
+      label: t("seriesInProgress"),
       value: String(seriesInProgress),
       icon: "🕒",
-      description: "Serie che stai seguendo",
+      description: t("seriesFollowing"),
     },
     {
-      label: "Preferiti",
+      label: t("favorites"),
       value: String(favoritesCount),
       icon: "❤️",
-      description: "Contenuti del cuore",
+      description: t("favoriteContent"),
     },
   ];
 
@@ -1322,20 +1321,18 @@ export default async function DashboardPage() {
         <section className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-[#8B5CF6]">
-              Dashboard personale
+              {t("dashboardPersonal")}
             </p>
 
             <h1 className="text-4xl font-bold md:text-5xl">
-              Ciao,{" "}
+              {t("helloPrefix")}{" "}
               <span className="text-[#7C3AED]">
                 {displayName}
               </span>
             </h1>
 
             <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-400">
-              Qui ViewVault racconta le tue
-              abitudini di visione, i tuoi gusti e
-              i progressi costruiti nel tempo.
+              {t("dashboardDescription")}
             </p>
           </div>
 
@@ -1346,7 +1343,7 @@ export default async function DashboardPage() {
                 style={{
                   backgroundImage: `url("${avatarUrl}")`,
                 }}
-                aria-label={`Avatar di ${displayName}`}
+                aria-label={t("avatarLabel", { name: displayName })}
               />
             ) : (
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-[#7C3AED] bg-[#7C3AED]/20 text-2xl font-bold text-[#A78BFA]">
@@ -1366,7 +1363,7 @@ export default async function DashboardPage() {
               </p>
 
               <span className="mt-2 inline-block rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
-                Il tuo spazio privato
+                {t("privateSpace")}
               </span>
             </div>
           </article>
@@ -1376,16 +1373,15 @@ export default async function DashboardPage() {
         <section>
           <div className="mb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8B5CF6]">
-              Panoramica
+              {t("overview")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-              I tuoi numeri
+              {t("yourNumbers")}
             </h2>
 
             <p className="mt-2 max-w-2xl text-zinc-500">
-              Una fotografia rapida della tua
-              attività su ViewVault.
+              {t("quickSnapshot")}
             </p>
           </div>
 
@@ -1401,7 +1397,7 @@ export default async function DashboardPage() {
                   </span>
 
                   <span className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
-                    Personale
+                    {t("personal")}
                   </span>
                 </div>
 
@@ -1427,11 +1423,11 @@ export default async function DashboardPage() {
             <div className="flex items-start justify-between gap-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                  Valutazioni
+                  {t("ratings")}
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold">
-                  Il tuo voto medio
+                  {t("averageRating")}
                 </h2>
               </div>
 
@@ -1450,24 +1446,23 @@ export default async function DashboardPage() {
                 </p>
 
                 <p className="mt-3 text-zinc-400">
-                  Calcolato su{" "}
-                  {ratedContents.length}{" "}
-                  {ratedContents.length === 1
-                    ? "contenuto valutato"
-                    : "contenuti valutati"}
-                  .
+                  {t("calculatedOn", {
+                    count: ratedContents.length,
+                    content:
+                      ratedContents.length === 1
+                        ? t("ratedContentOne")
+                        : t("ratedContentMany"),
+                  })}
                 </p>
               </>
             ) : (
               <div className="mt-7 rounded-2xl border border-dashed border-zinc-700 bg-black/20 p-5">
                 <p className="font-semibold text-zinc-300">
-                  Nessuna valutazione ancora
+                  {t("noRatings")}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  Quando inizierai a votare film e
-                  serie, ViewVault calcolerà qui la
-                  tua media personale.
+                  {t("noRatingsDesc")}
                 </p>
               </div>
             )}
@@ -1477,11 +1472,11 @@ export default async function DashboardPage() {
             <div className="flex items-start justify-between gap-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                  Recensioni
+                  {t("reviews")}
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold">
-                  La tua voce
+                  {t("yourVoice")}
                 </h2>
               </div>
 
@@ -1496,8 +1491,8 @@ export default async function DashboardPage() {
 
             <p className="mt-3 text-zinc-400">
               {reviewsCount === 1
-                ? "Recensione scritta nel tuo Vault."
-                : "Recensioni scritte nel tuo Vault."}
+                ? t("reviewOne")
+                : t("reviewMany")}
             </p>
           </article>
         </section>
@@ -1506,17 +1501,15 @@ export default async function DashboardPage() {
         <section className="mt-10">
           <div className="mb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8B5CF6]">
-              Attività
+              {t("activity")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-              Il tuo ritmo di visione
+              {t("viewingRhythm")}
             </h2>
 
             <p className="mt-2 max-w-3xl text-zinc-500">
-              Le statistiche vengono calcolate sulle
-              date reali registrate da ViewVault per
-              film ed episodi.
+              {t("activityDesc")}
             </p>
           </div>
 
@@ -1528,7 +1521,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Questo mese
+                  {t("thisMonth")}
                 </span>
               </div>
 
@@ -1537,7 +1530,7 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Film visti
+                {t("moviesWatched")}
               </p>
             </article>
 
@@ -1548,7 +1541,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Questo mese
+                  {t("thisMonth")}
                 </span>
               </div>
 
@@ -1557,7 +1550,7 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Episodi visti
+                {t("episodesWatched")}
               </p>
             </article>
 
@@ -1568,7 +1561,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Totale
+                  {t("total")}
                 </span>
               </div>
 
@@ -1577,7 +1570,7 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Attività del mese
+                {t("monthlyActivity")}
               </p>
             </article>
 
@@ -1588,7 +1581,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  vs mese scorso
+                  {t("vsLastMonth")}
                 </span>
               </div>
 
@@ -1599,7 +1592,7 @@ export default async function DashboardPage() {
                   </p>
 
                   <p className="mt-2 font-semibold text-zinc-300">
-                    Nessuna variazione
+                    {t("noVariation")}
                   </p>
                 </>
               ) : (
@@ -1621,17 +1614,18 @@ export default async function DashboardPage() {
 
                   <p className="mt-2 font-semibold text-zinc-300">
                     {monthlyVariation > 0
-                      ? "Più attività"
+                      ? t("moreActivity")
                       : monthlyVariation < 0
-                        ? "Meno attività"
-                        : "Stessa attività"}
+                        ? t("lessActivity")
+                        : t("sameActivity")}
                   </p>
                 </>
               )}
 
               <p className="mt-2 text-sm text-zinc-500">
-                Mese scorso:{" "}
-                {activityPreviousMonth}
+                {t("lastMonth", {
+                  count: activityPreviousMonth,
+                })}
               </p>
             </article>
           </div>
@@ -1647,7 +1641,7 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Film visti quest&apos;anno
+                {t("moviesThisYear")}
               </p>
             </article>
 
@@ -1661,13 +1655,13 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Episodi visti quest&apos;anno
+                {t("episodesThisYear")}
               </p>
             </article>
 
             <article className="rounded-3xl border border-[#7C3AED]/40 bg-[#7C3AED]/10 p-6 md:p-7">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#C4B5FD]">
-                Attività annuale
+                {t("yearlyActivity")}
               </p>
 
               <p className="mt-4 text-4xl font-bold text-white">
@@ -1675,7 +1669,7 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-[#C4B5FD]">
-                Film + episodi
+                {t("moviesPlusEpisodes")}
               </p>
             </article>
           </div>
@@ -1685,30 +1679,29 @@ export default async function DashboardPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                  Andamento mensile
+                  {t("monthlyTrend")}
                 </p>
 
                 <h3 className="mt-2 text-2xl font-bold">
-                  Le tue visioni nel{" "}
-                  {now.getFullYear()}
+                  {t("yourViewsInYear", {
+                    year: now.getFullYear(),
+                  })}
                 </h3>
 
                 <p className="mt-2 text-zinc-500">
-                  Ogni colonna rappresenta il totale
-                  di film ed episodi registrati nel
-                  mese.
+                  {t("monthlyTrendDesc")}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-4 text-sm">
                 <span className="flex items-center gap-2 text-zinc-400">
                   <span className="h-3 w-3 rounded-full bg-[#7C3AED]" />
-                  Film
+                  {t("movie")}
                 </span>
 
                 <span className="flex items-center gap-2 text-zinc-400">
                   <span className="h-3 w-3 rounded-full bg-[#2563EB]" />
-                  Episodi
+                  {t("episodes")}
                 </span>
               </div>
             </div>
@@ -1759,7 +1752,7 @@ export default async function DashboardPage() {
                           style={{
                             height: `${totalHeight}px`,
                           }}
-                          title={`${month.monthLabel}: ${month.movies} film, ${month.episodes} episodi`}
+                          title={t("chartTitle", { month: month.monthLabel, movies: month.movies, episodes: month.episodes })}
                         >
                           {movieHeight > 0 && (
                             <div
@@ -1793,8 +1786,9 @@ export default async function DashboardPage() {
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-zinc-800 bg-black/20 p-5">
                 <p className="text-sm text-zinc-500">
-                  Film registrati nel{" "}
-                  {now.getFullYear()}
+                  {t("moviesRecordedInYear", {
+                    year: now.getFullYear(),
+                  })}
                 </p>
 
                 <p className="mt-2 text-2xl font-bold">
@@ -1804,8 +1798,9 @@ export default async function DashboardPage() {
 
               <div className="rounded-2xl border border-zinc-800 bg-black/20 p-5">
                 <p className="text-sm text-zinc-500">
-                  Episodi registrati nel{" "}
-                  {now.getFullYear()}
+                  {t("episodesRecordedInYear", {
+                    year: now.getFullYear(),
+                  })}
                 </p>
 
                 <p className="mt-2 text-2xl font-bold">
@@ -1820,18 +1815,15 @@ export default async function DashboardPage() {
         <section className="mt-10">
           <div className="mb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8B5CF6]">
-              I tuoi gusti
+              {t("yourTastes")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-              Cosa guardi davvero
+              {t("whatYouWatch")}
             </h2>
 
             <p className="mt-2 max-w-3xl text-zinc-500">
-              ViewVault analizza i contenuti che hai
-              realmente guardato e li confronta con
-              le preferenze che hai scelto nel tuo
-              profilo.
+              {t("tastesDesc")}
             </p>
           </div>
 
@@ -1842,12 +1834,12 @@ export default async function DashboardPage() {
                   <div className="flex items-start justify-between gap-5">
                     <div>
                       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#C4B5FD]">
-                        Genere dominante
+                        {t("dominantGenre")}
                       </p>
 
                       <h3 className="mt-3 text-3xl font-bold text-white">
                         {dominantGenre?.name ??
-                          "N/D"}
+                          t("notAvailable")}
                       </h3>
                     </div>
 
@@ -1859,15 +1851,15 @@ export default async function DashboardPage() {
                   {dominantGenre && (
                     <>
                       <p className="mt-5 text-zinc-300">
-                        Compare in{" "}
-                        <strong className="text-white">
-                          {dominantGenre.count}
-                        </strong>{" "}
-                        dei{" "}
-                        <strong className="text-white">
-                          {analyzedContents}
-                        </strong>{" "}
-                        contenuti analizzati.
+                        {t.rich("genreAppearsIn", {
+                          count: dominantGenre.count,
+                          total: analyzedContents,
+                          strong: (chunks) => (
+                            <strong className="text-white">
+                              {chunks}
+                            </strong>
+                          ),
+                        })}
                       </p>
 
                       <div className="mt-6 h-3 overflow-hidden rounded-full bg-black/30">
@@ -1883,8 +1875,9 @@ export default async function DashboardPage() {
                       </div>
 
                       <p className="mt-3 text-sm font-semibold text-[#C4B5FD]">
-                        {dominantGenre.percentage}%
-                        dei tuoi contenuti
+                        {t("ofYourContent", {
+                          percentage: dominantGenre.percentage,
+                        })}
                       </p>
                     </>
                   )}
@@ -1894,11 +1887,11 @@ export default async function DashboardPage() {
                   <div className="flex items-start justify-between gap-5">
                     <div>
                       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                        Film vs Serie TV
+                        {t("moviesVsSeries")}
                       </p>
 
                       <h3 className="mt-2 text-2xl font-bold">
-                        Cosa scegli più spesso?
+                        {t("whatChooseMost")}
                       </h3>
                     </div>
 
@@ -1938,11 +1931,13 @@ export default async function DashboardPage() {
                       </p>
 
                       <p className="mt-1 text-sm text-zinc-400">
-                        Film
+                        {t("movie")}
                       </p>
 
                       <p className="mt-1 text-xs text-zinc-600">
-                        {analyzedMovies} contenuti
+                        {t("contentsCount", {
+                          count: analyzedMovies,
+                        })}
                       </p>
                     </div>
 
@@ -1956,11 +1951,13 @@ export default async function DashboardPage() {
                       </p>
 
                       <p className="mt-1 text-sm text-zinc-400">
-                        Serie TV
+                        {t("tvSeries")}
                       </p>
 
                       <p className="mt-1 text-xs text-zinc-600">
-                        {analyzedSeries} contenuti
+                        {t("contentsCount", {
+                          count: analyzedSeries,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -1971,19 +1968,19 @@ export default async function DashboardPage() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                      Top generi
+                      {t("topGenres")}
                     </p>
 
                     <h3 className="mt-2 text-2xl font-bold">
-                      La tua impronta cinematografica
+                      {t("cinematicFingerprint")}
                     </h3>
                   </div>
 
                   <p className="text-sm text-zinc-500">
                     {analyzedContents}{" "}
                     {analyzedContents === 1
-                      ? "contenuto analizzato"
-                      : "contenuti analizzati"}
+                      ? t("analyzedContentOne")
+                      : t("analyzedContentMany")}
                   </p>
                 </div>
 
@@ -2025,8 +2022,8 @@ export default async function DashboardPage() {
                             <p className="text-xs text-zinc-500">
                               {genre.count}{" "}
                               {genre.count === 1
-                                ? "titolo"
-                                : "titoli"}
+                                ? t("titleOne")
+                                : t("titleMany")}
                             </p>
                           </div>
                         </div>
@@ -2035,8 +2032,7 @@ export default async function DashboardPage() {
                   </div>
                 ) : (
                   <div className="mt-6 rounded-2xl border border-dashed border-zinc-700 bg-black/20 p-5 text-zinc-500">
-                    Non sono disponibili abbastanza
-                    informazioni sui generi.
+                    {t("notEnoughGenres")}
                   </div>
                 )}
               </article>
@@ -2044,11 +2040,11 @@ export default async function DashboardPage() {
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 <article className="rounded-3xl border border-zinc-800 bg-[#151515] p-6 md:p-8">
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                    Nel tuo profilo
+                    {t("inYourProfile")}
                   </p>
 
                   <h3 className="mt-2 text-2xl font-bold">
-                    ❤️ Dici di amare...
+                    {t("youSayYouLove")}
                   </h3>
 
                   {favoriteGenres.length > 0 ? (
@@ -2084,22 +2080,17 @@ export default async function DashboardPage() {
                       </div>
 
                       <p className="mt-5 text-sm leading-6 text-zinc-500">
-                        Questi sono i generi che hai
-                        scelto manualmente nel tuo
-                        profilo ViewVault.
+                        {t("declaredGenresDesc")}
                       </p>
                     </>
                   ) : (
                     <div className="mt-6 rounded-2xl border border-dashed border-zinc-700 bg-black/20 p-5">
                       <p className="font-semibold text-zinc-300">
-                        Nessun genere preferito
-                        selezionato
+                        {t("noFavoriteGenres")}
                       </p>
 
                       <p className="mt-2 text-sm leading-6 text-zinc-500">
-                        Puoi scegliere i tuoi generi
-                        preferiti modificando il
-                        profilo.
+                        {t("chooseGenresDesc")}
                       </p>
                     </div>
                   )}
@@ -2107,11 +2098,11 @@ export default async function DashboardPage() {
 
                 <article className="rounded-3xl border border-zinc-800 bg-[#151515] p-6 md:p-8">
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                    Secondo le tue visioni
+                    {t("basedOnViews")}
                   </p>
 
                   <h3 className="mt-2 text-2xl font-bold">
-                    📊 Ma guardi soprattutto...
+                    {t("mostlyWatch")}
                   </h3>
 
                   <div className="mt-6 flex flex-wrap gap-2">
@@ -2150,34 +2141,26 @@ export default async function DashboardPage() {
                   favoriteTopMatches.length > 0 ? (
                     <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
                       <p className="font-semibold text-emerald-300">
-                        🎯 Gusti confermati
+                        {t("tastesConfirmed")}
                       </p>
 
                       <p className="mt-2 text-sm leading-6 text-zinc-400">
-                        Alcuni dei generi che hai
-                        dichiarato di amare sono
-                        davvero tra quelli che guardi
-                        più spesso.
+                        {t("tastesConfirmedDesc")}
                       </p>
                     </div>
                   ) : favoriteGenres.length > 0 ? (
                     <div className="mt-6 rounded-2xl border border-[#2563EB]/20 bg-[#2563EB]/5 p-5">
                       <p className="font-semibold text-blue-300">
-                        👀 Piccola sorpresa
+                        {t("smallSurprise")}
                       </p>
 
                       <p className="mt-2 text-sm leading-6 text-zinc-400">
-                        I generi che guardi di più
-                        non coincidono ancora con i
-                        tuoi preferiti dichiarati.
+                        {t("smallSurpriseDesc")}
                       </p>
                     </div>
                   ) : (
                     <p className="mt-6 text-sm leading-6 text-zinc-500">
-                      Se imposti i tuoi generi
-                      preferiti nel profilo,
-                      ViewVault potrà confrontarli
-                      con le tue visioni reali.
+                      {t("setGenresDesc")}
                     </p>
                   )}
                 </article>
@@ -2190,15 +2173,11 @@ export default async function DashboardPage() {
               </div>
 
               <h3 className="mt-4 text-xl font-bold">
-                Il tuo profilo di visione sta
-                prendendo forma
+                {t("profileTakingShape")}
               </h3>
 
               <p className="mx-auto mt-3 max-w-xl leading-7 text-zinc-500">
-                Quando avrai film o serie guardati,
-                ViewVault potrà analizzare i tuoi
-                gusti e mostrarti quali generi
-                dominano davvero il tuo Vault.
+                {t("profileTakingShapeDesc")}
               </p>
             </div>
           )}
@@ -2208,18 +2187,15 @@ export default async function DashboardPage() {
         <section className="mt-10">
           <div className="mb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8B5CF6]">
-              Abitudini
+              {t("habits")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-              Il tuo stile di visione
+              {t("viewingStyle")}
             </h2>
 
             <p className="mt-2 max-w-3xl text-zinc-500">
-              ViewVault osserva quante volte torni
-              sui contenuti che hai già visto e
-              distingue le prime visioni dai
-              rewatch registrati.
+              {t("habitsDesc")}
             </p>
           </div>
 
@@ -2231,7 +2207,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
-                  Film
+                  {t("movie")}
                 </span>
               </div>
 
@@ -2240,11 +2216,11 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Rewatch film
+                {t("movieRewatches")}
               </p>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Visioni successive alla prima
+                {t("afterFirstView")}
               </p>
             </article>
 
@@ -2255,7 +2231,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
-                  Film
+                  {t("movie")}
                 </span>
               </div>
 
@@ -2264,11 +2240,11 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Film rivisti
+                {t("rewatchedMovies")}
               </p>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Titoli con almeno un rewatch
+                {t("titlesWithRewatch")}
               </p>
             </article>
 
@@ -2279,7 +2255,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="rounded-full bg-[#2563EB]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-300">
-                  Episodi
+                  {t("episodes")}
                 </span>
               </div>
 
@@ -2288,11 +2264,11 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Rewatch episodi
+                {t("episodeRewatches")}
               </p>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Riproduzioni oltre la prima
+                {t("playsBeyondFirst")}
               </p>
             </article>
 
@@ -2303,7 +2279,7 @@ export default async function DashboardPage() {
                 </span>
 
                 <span className="rounded-full bg-[#2563EB]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-300">
-                  Serie
+                  {t("series")}
                 </span>
               </div>
 
@@ -2312,11 +2288,11 @@ export default async function DashboardPage() {
               </p>
 
               <p className="mt-2 font-semibold text-zinc-300">
-                Serie riprese
+                {t("resumedSeries")}
               </p>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Serie con episodi rivisti
+                {t("seriesWithRewatchedEpisodes")}
               </p>
             </article>
           </div>
@@ -2327,11 +2303,11 @@ export default async function DashboardPage() {
               <div className="flex items-start justify-between gap-5">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#C4B5FD]">
-                    Il tuo ritorno preferito
+                    {t("favoriteReturn")}
                   </p>
 
                   <h3 className="mt-2 text-2xl font-bold">
-                    Film più rivisto
+                    {t("mostRewatchedMovie")}
                   </h3>
                 </div>
 
@@ -2349,7 +2325,7 @@ export default async function DashboardPage() {
                   <div className="mt-6 grid grid-cols-2 gap-4">
                     <div className="rounded-2xl border border-[#7C3AED]/20 bg-black/20 p-5">
                       <p className="text-sm text-zinc-400">
-                        Visioni totali
+                        {t("totalViews")}
                       </p>
 
                       <p className="mt-2 text-3xl font-bold">
@@ -2361,7 +2337,7 @@ export default async function DashboardPage() {
 
                     <div className="rounded-2xl border border-[#7C3AED]/20 bg-black/20 p-5">
                       <p className="text-sm text-zinc-400">
-                        Rewatch
+                        {t("rewatch")}
                       </p>
 
                       <p className="mt-2 text-3xl font-bold text-[#C4B5FD]">
@@ -2375,13 +2351,11 @@ export default async function DashboardPage() {
               ) : (
                 <div className="mt-7 rounded-2xl border border-dashed border-[#7C3AED]/30 bg-black/20 p-5">
                   <p className="font-semibold text-zinc-300">
-                    Nessun film rivisto ancora
+                    {t("noRewatchedMovie")}
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-zinc-500">
-                    Quando registrerai una nuova
-                    visione di un film già visto,
-                    apparirà qui.
+                    {t("noRewatchedMovieDesc")}
                   </p>
                 </div>
               )}
@@ -2392,11 +2366,11 @@ export default async function DashboardPage() {
               <div className="flex items-start justify-between gap-5">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                    Prime visioni vs Rewatch
+                    {t("firstVsRewatch")}
                   </p>
 
                   <h3 className="mt-2 text-2xl font-bold">
-                    Quanto ami tornare indietro?
+                    {t("howMuchReturn")}
                   </h3>
                 </div>
 
@@ -2431,7 +2405,7 @@ export default async function DashboardPage() {
                   <div className="mt-6 grid grid-cols-2 gap-4">
                     <div className="rounded-2xl border border-zinc-800 bg-black/20 p-5">
                       <p className="text-sm text-zinc-500">
-                        Prima visione
+                        {t("firstView")}
                       </p>
 
                       <p className="mt-2 text-3xl font-bold">
@@ -2445,7 +2419,7 @@ export default async function DashboardPage() {
 
                     <div className="rounded-2xl border border-zinc-800 bg-black/20 p-5">
                       <p className="text-sm text-zinc-500">
-                        Rewatch
+                        {t("rewatch")}
                       </p>
 
                       <p className="mt-2 text-3xl font-bold text-blue-300">
@@ -2461,12 +2435,11 @@ export default async function DashboardPage() {
               ) : (
                 <div className="mt-7 rounded-2xl border border-dashed border-zinc-700 bg-black/20 p-5">
                   <p className="font-semibold text-zinc-300">
-                    Nessuna attività disponibile
+                    {t("noActivity")}
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-zinc-500">
-                    Servono visioni registrate per
-                    calcolare questa statistica.
+                    {t("needViews")}
                   </p>
                 </div>
               )}
@@ -2478,25 +2451,21 @@ export default async function DashboardPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                  Rewatch
+                  {t("rewatch")}
                 </p>
 
                 <h3 className="mt-2 text-2xl font-bold">
-                  Il tuo rapporto con le seconde
-                  visioni
+                  {t("secondViewsRelation")}
                 </h3>
 
                 <p className="mt-2 max-w-3xl text-zinc-500">
-                  Qui contiamo soltanto le visioni
-                  registrate dopo la prima dello
-                  stesso film o dello stesso
-                  episodio.
+                  {t("secondViewsDesc")}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-zinc-800 bg-black/20 px-5 py-3">
                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Rewatch totali
+                  {t("totalRewatches")}
                 </p>
 
                 <p className="mt-1 text-2xl font-bold">
@@ -2509,7 +2478,7 @@ export default async function DashboardPage() {
               <div className="rounded-2xl border border-zinc-800 bg-black/20 p-6">
                 <div className="flex items-center justify-between">
                   <p className="font-bold">
-                    🎬 Film
+                    🎬 {t("movie")}
                   </p>
 
                   <span className="text-sm font-bold text-[#A78BFA]">
@@ -2532,7 +2501,7 @@ export default async function DashboardPage() {
                 <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-zinc-500">
-                      Visioni
+                      {t("views")}
                     </p>
 
                     <p className="mt-1 font-bold">
@@ -2542,7 +2511,7 @@ export default async function DashboardPage() {
 
                   <div>
                     <p className="text-zinc-500">
-                      Rewatch
+                      {t("rewatch")}
                     </p>
 
                     <p className="mt-1 font-bold">
@@ -2555,7 +2524,7 @@ export default async function DashboardPage() {
               <div className="rounded-2xl border border-zinc-800 bg-black/20 p-6">
                 <div className="flex items-center justify-between">
                   <p className="font-bold">
-                    📺 Episodi
+                    📺 {t("episodes")}
                   </p>
 
                   <span className="text-sm font-bold text-blue-300">
@@ -2578,7 +2547,7 @@ export default async function DashboardPage() {
                 <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-zinc-500">
-                      Visioni
+                      {t("views")}
                     </p>
 
                     <p className="mt-1 font-bold">
@@ -2588,7 +2557,7 @@ export default async function DashboardPage() {
 
                   <div>
                     <p className="text-zinc-500">
-                      Rewatch
+                      {t("rewatch")}
                     </p>
 
                     <p className="mt-1 font-bold">
@@ -2603,25 +2572,18 @@ export default async function DashboardPage() {
               rewatchedEpisodesCount > 0) && (
               <div className="mt-6 rounded-2xl border border-[#7C3AED]/20 bg-[#7C3AED]/5 p-5">
                 <p className="font-semibold text-[#C4B5FD]">
-                  🔁 Il Vault ha memoria
+                  {t("vaultHasMemory")}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
-                  Hai rivisto{" "}
-                  <strong className="text-white">
-                    {rewatchedMoviesCount}
-                  </strong>{" "}
-                  {rewatchedMoviesCount === 1
-                    ? "film"
-                    : "film"}{" "}
-                  e{" "}
-                  <strong className="text-white">
-                    {rewatchedEpisodesCount}
-                  </strong>{" "}
-                  {rewatchedEpisodesCount === 1
-                    ? "episodio"
-                    : "episodi"}{" "}
-                  almeno una volta.
+                  {t("rewatchedSummary", {
+                    movies: rewatchedMoviesCount,
+                    episodes: rewatchedEpisodesCount,
+                    episodeLabel:
+                      rewatchedEpisodesCount === 1
+                        ? t("episodeOne")
+                        : t("episodeMany"),
+                  })}
                 </p>
               </div>
             )}
@@ -2633,18 +2595,15 @@ export default async function DashboardPage() {
           <div className="mb-6 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8B5CF6]">
-                Traguardi
+                {t("achievements")}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-                La tua storia su ViewVault
+                {t("yourStory")}
               </h2>
 
               <p className="mt-2 max-w-3xl leading-7 text-zinc-500">
-                Ogni traguardo cresce insieme al tuo
-                Vault. I livelli non finiscono mai:
-                raggiunta una soglia, ViewVault ne
-                genera automaticamente una nuova.
+                {t("achievementsDesc")}
               </p>
             </div>
 
@@ -2655,7 +2614,7 @@ export default async function DashboardPage() {
 
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-[#C4B5FD]">
-                  Livelli conquistati
+                  {t("levelsEarned")}
                 </p>
 
                 <p className="mt-1 text-2xl font-bold">
@@ -2675,7 +2634,7 @@ export default async function DashboardPage() {
 
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#C4B5FD]">
-                      Prossimo traguardo
+                      {t("nextAchievement")}
                     </p>
 
                     <h3 className="mt-2 text-2xl font-bold md:text-3xl">
@@ -2686,19 +2645,17 @@ export default async function DashboardPage() {
                     </h3>
 
                     <p className="mt-2 text-zinc-400">
-                      Ti mancano{" "}
-                      <strong className="text-white">
-                        {closestAchievement.remaining}
-                      </strong>{" "}
-                      {closestAchievement.unit} per
-                      raggiungere il prossimo livello.
+                      {t("missingForNext", {
+                        remaining: closestAchievement.remaining,
+                        unit: closestAchievement.unit,
+                      })}
                     </p>
                   </div>
                 </div>
 
                 <div className="min-w-44 rounded-2xl border border-[#7C3AED]/30 bg-black/20 p-5 text-center">
                   <p className="text-sm text-zinc-400">
-                    Progresso
+                    {t("progress")}
                   </p>
 
                   <p className="mt-1 text-3xl font-bold text-[#C4B5FD]">
@@ -2766,7 +2723,7 @@ export default async function DashboardPage() {
                       </span>
                     ) : (
                       <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs font-bold text-zinc-500">
-                        DA SBLOCCARE
+                        {t("locked")}
                       </span>
                     )}
                   </div>
@@ -2778,7 +2735,7 @@ export default async function DashboardPage() {
                       </p>
 
                       <p className="mt-1 text-sm text-zinc-500">
-                        Totale attuale
+                        {t("currentTotal")}
                       </p>
                     </div>
 
@@ -2788,7 +2745,7 @@ export default async function DashboardPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-zinc-600">
-                        prossimo livello
+                        {t("nextLevel")}
                       </p>
                     </div>
                   </div>
@@ -2809,10 +2766,11 @@ export default async function DashboardPage() {
                   <div className="mt-4 flex items-center justify-between gap-4 text-xs">
                     <span className="text-zinc-500">
                       {achievement.level > 0
-                        ? `Livello ${toRomanNumeral(
-                            achievement.level
-                          )} · soglia ${achievement.currentThreshold}`
-                        : "Primo livello ancora da conquistare"}
+                        ? t("levelThreshold", {
+                            level: toRomanNumeral(achievement.level),
+                            threshold: achievement.currentThreshold,
+                          })
+                        : t("firstLevelNotEarned")}
                     </span>
 
                     <span className="font-semibold text-zinc-400">
@@ -2827,23 +2785,18 @@ export default async function DashboardPage() {
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             <article className="rounded-3xl border border-zinc-800 bg-[#151515] p-6 md:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                Collezione
+                {t("collection")}
               </p>
 
               <h3 className="mt-2 text-2xl font-bold">
-                🏅 Traguardi attivi
+                {t("activeAchievements")}
               </h3>
 
               <p className="mt-4 leading-7 text-zinc-400">
-                Hai sbloccato almeno un livello in{" "}
-                <strong className="text-white">
-                  {unlockedAchievements.length}
-                </strong>{" "}
-                categorie su{" "}
-                <strong className="text-white">
-                  {achievements.length}
-                </strong>
-                .
+                {t("activeAchievementSummary", {
+                  unlocked: unlockedAchievements.length,
+                  total: achievements.length,
+                })}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">
@@ -2864,8 +2817,7 @@ export default async function DashboardPage() {
                   )
                 ) : (
                   <p className="text-sm text-zinc-500">
-                    Il primo badge è ancora lì che
-                    aspetta di essere conquistato.
+                    {t("firstBadgeWaiting")}
                   </p>
                 )}
               </div>
@@ -2873,31 +2825,24 @@ export default async function DashboardPage() {
 
             <article className="rounded-3xl border border-zinc-800 bg-[#151515] p-6 md:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8B5CF6]">
-                Sistema infinito
+                {t("infiniteSystem")}
               </p>
 
               <h3 className="mt-2 text-2xl font-bold">
-                ♾️ Nessun ultimo livello
+                {t("noLastLevel")}
               </h3>
 
               <p className="mt-4 leading-7 text-zinc-400">
-                I traguardi non hanno un tetto
-                massimo. Più cresce il tuo Vault,
-                più cresce la distanza verso il
-                livello successivo.
+                {t("noLevelCapDesc")}
               </p>
 
               <div className="mt-6 rounded-2xl border border-[#7C3AED]/20 bg-[#7C3AED]/5 p-5">
                 <p className="font-semibold text-[#C4B5FD]">
-                  La sfida continua
+                  {t("challengeContinues")}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  Ogni categoria genera
-                  automaticamente nuove soglie,
-                  quindi anche gli utenti più
-                  veterani avranno sempre un nuovo
-                  obiettivo davanti.
+                  {t("challengeDesc")}
                 </p>
               </div>
             </article>

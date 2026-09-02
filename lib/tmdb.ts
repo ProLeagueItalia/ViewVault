@@ -1,6 +1,7 @@
 const API_KEY = process.env.TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+const DEFAULT_TMDB_LANGUAGE = "it-IT";
 
 export type MediaType = "movie" | "tv";
 
@@ -192,13 +193,14 @@ function checkApiKey() {
 async function fetchMovieList(
   endpoint: string,
   page = 1,
-  extraParams: Record<string, string> = {}
+  extraParams: Record<string, string> = {},
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBMoviePage> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
     page: String(page),
     include_adult: "false",
     ...extraParams,
@@ -237,13 +239,14 @@ async function fetchMovieList(
 async function fetchSeriesList(
   endpoint: string,
   page = 1,
-  extraParams: Record<string, string> = {}
+  extraParams: Record<string, string> = {},
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeriesPage> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
     page: String(page),
     include_adult: "false",
     ...extraParams,
@@ -280,40 +283,49 @@ async function fetchSeriesList(
  */
 
 export async function getPopularMovies(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBMoviePage> {
   return fetchMovieList(
     "/movie/popular",
-    page
+    page,
+    {},
+    language
   );
 }
 
 export async function getTopRatedMovies(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBMoviePage> {
   return fetchMovieList(
     "/movie/top_rated",
-    page
+    page,
+    {},
+    language
   );
 }
 
 export async function getUpcomingMovies(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBMoviePage> {
   return fetchMovieList(
     "/movie/upcoming",
-    page
+    page,
+    {},
+    language
   );
 }
 
-export async function getTrendingMovies(): Promise<
-  TMDBMovie[]
-> {
+export async function getTrendingMovies(
+  language = DEFAULT_TMDB_LANGUAGE
+): Promise<TMDBMovie[]> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -341,14 +353,14 @@ export async function getTrendingMovies(): Promise<
  * GENERI FILM
  */
 
-export async function getMovieGenres(): Promise<
-  TMDBGenre[]
-> {
+export async function getMovieGenres(
+  language = DEFAULT_TMDB_LANGUAGE
+): Promise<TMDBGenre[]> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -380,7 +392,8 @@ export async function getMovieGenres(): Promise<
  */
 
 export async function searchPeople(
-  query: string
+  query: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBPerson[]> {
   checkApiKey();
 
@@ -392,7 +405,7 @@ export async function searchPeople(
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
     query: cleanQuery,
     page: "1",
     include_adult: "false",
@@ -431,7 +444,8 @@ export async function searchPeople(
  */
 
 export async function findActorByName(
-  query: string
+  query: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBPerson | null> {
   const cleanQuery = query.trim();
 
@@ -440,14 +454,14 @@ export async function findActorByName(
   }
 
   const people =
-    await searchPeople(cleanQuery);
+    await searchPeople(cleanQuery, language);
 
   if (people.length === 0) {
     return null;
   }
 
   const normalizedQuery =
-    cleanQuery.toLocaleLowerCase("it-IT");
+    cleanQuery.toLocaleLowerCase(language);
 
   /*
    * Prima proviamo a trovare
@@ -458,7 +472,7 @@ export async function findActorByName(
     people.find(
       (person) =>
         person.name
-          .toLocaleLowerCase("it-IT") ===
+          .toLocaleLowerCase(language) ===
         normalizedQuery
     );
 
@@ -480,7 +494,8 @@ export async function findActorByName(
  */
 
 export async function discoverMovies(
-  filters: DiscoverMovieFilters = {}
+  filters: DiscoverMovieFilters = {},
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBMoviePage> {
   const {
     page = 1,
@@ -554,7 +569,8 @@ export async function discoverMovies(
   return fetchMovieList(
     "/discover/movie",
     page,
-    extraParams
+    extraParams,
+    language
   );
 }
 
@@ -562,12 +578,14 @@ export async function discoverMovies(
  * FILM AL CINEMA
  */
 
-export async function getNowPlayingMovies(): Promise<
-  TMDBMovie[]
-> {
+export async function getNowPlayingMovies(
+  language = DEFAULT_TMDB_LANGUAGE
+): Promise<TMDBMovie[]> {
   const data = await fetchMovieList(
     "/movie/now_playing",
-    1
+    1,
+    {},
+    language
   );
 
   return data.results;
@@ -578,29 +596,38 @@ export async function getNowPlayingMovies(): Promise<
  */
 
 export async function getPopularSeries(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeriesPage> {
   return fetchSeriesList(
     "/tv/popular",
-    page
+    page,
+    {},
+    language
   );
 }
 
 export async function getTopRatedSeries(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeriesPage> {
   return fetchSeriesList(
     "/tv/top_rated",
-    page
+    page,
+    {},
+    language
   );
 }
 
 export async function getAiringTodaySeries(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeriesPage> {
   return fetchSeriesList(
     "/tv/airing_today",
-    page
+    page,
+    {},
+    language
   );
 }
 
@@ -615,7 +642,8 @@ export async function getAiringTodaySeries(
  */
 
 export async function getNewSeries(
-  page = 1
+  page = 1,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeriesPage> {
   const today = new Date();
 
@@ -648,18 +676,19 @@ export async function getNewSeries(
       "first_air_date.lte":
         formatDate(today),
       "vote_count.gte": "10",
-    }
+    },
+    language
   );
 }
 
-export async function getTrendingSeries(): Promise<
-  TMDBSeries[]
-> {
+export async function getTrendingSeries(
+  language = DEFAULT_TMDB_LANGUAGE
+): Promise<TMDBSeries[]> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -687,14 +716,14 @@ export async function getTrendingSeries(): Promise<
  * GENERI SERIE TV
  */
 
-export async function getSeriesGenres(): Promise<
-  TMDBGenre[]
-> {
+export async function getSeriesGenres(
+  language = DEFAULT_TMDB_LANGUAGE
+): Promise<TMDBGenre[]> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -723,7 +752,8 @@ export async function getSeriesGenres(): Promise<
  */
 
 export async function discoverSeries(
-  filters: DiscoverSeriesFilters = {}
+  filters: DiscoverSeriesFilters = {},
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeriesPage> {
   const {
     page = 1,
@@ -783,7 +813,8 @@ export async function discoverSeries(
   return fetchSeriesList(
     "/discover/tv",
     page,
-    extraParams
+    extraParams,
+    language
   );
 }
 
@@ -817,13 +848,14 @@ type TMDBCombinedCreditsResponse = {
 };
 
 export async function getSeriesByActor(
-  actorId: number
+  actorId: number,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSeries[]> {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -890,7 +922,8 @@ export async function getSeriesByActor(
  */
 
 export async function searchMovies(
-  query: string
+  query: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBMovie[]> {
   checkApiKey();
 
@@ -902,7 +935,7 @@ export async function searchMovies(
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
     query: cleanQuery,
     page: "1",
     include_adult: "false",
@@ -932,7 +965,8 @@ export async function searchMovies(
  */
 
 export async function searchMoviesAndSeries(
-  query: string
+  query: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBSearchResult[]> {
   checkApiKey();
 
@@ -944,7 +978,7 @@ export async function searchMoviesAndSeries(
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
     query: cleanQuery,
     page: "1",
     include_adult: "false",
@@ -1017,13 +1051,14 @@ export async function searchMoviesAndSeries(
  */
 
 export async function getMovie(
-  id: string
+  id: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1045,13 +1080,14 @@ export async function getMovie(
 }
 
 export async function getMovieCredits(
-  id: string
+  id: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1073,13 +1109,14 @@ export async function getMovieCredits(
 }
 
 export async function getMovieVideos(
-  id: string
+  id: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1105,13 +1142,14 @@ export async function getMovieVideos(
  */
 
 export async function getSeries(
-  id: string
+  id: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1133,13 +1171,14 @@ export async function getSeries(
 }
 
 export async function getSeriesCredits(
-  id: string
+  id: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1161,13 +1200,14 @@ export async function getSeriesCredits(
 }
 
 export async function getSeriesVideos(
-  id: string
+  id: string,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1190,13 +1230,14 @@ export async function getSeriesVideos(
 
 export async function getSeriesSeason(
   seriesId: string,
-  seasonNumber: number
+  seasonNumber: number,
+  language = DEFAULT_TMDB_LANGUAGE
 ) {
   checkApiKey();
 
   const params = new URLSearchParams({
     api_key: API_KEY as string,
-    language: "it-IT",
+    language,
   });
 
   const res = await fetch(
@@ -1269,7 +1310,7 @@ type TMDBTrendingResponse = {
 };
 
 export async function getTrendingAll(
-  language = "it-IT"
+  language = DEFAULT_TMDB_LANGUAGE
 ): Promise<TMDBTrendingItem[]> {
   checkApiKey();
 

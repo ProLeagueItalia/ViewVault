@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import {
   getPosterUrl,
   type TMDBWatchProvider,
@@ -14,6 +18,7 @@ type ProviderGroupProps = {
   title: string;
   providers: TMDBWatchProvider[];
   link?: string;
+  openProviderOptions: (provider: string) => string;
 };
 
 export default function WatchProviders({
@@ -21,6 +26,8 @@ export default function WatchProviders({
   title,
   countryLabel = "Italia",
 }: WatchProvidersProps) {
+  const t = useTranslations("WatchProviders");
+
   const streaming = providers?.flatrate ?? [];
   const rent = providers?.rent ?? [];
   const buy = providers?.buy ?? [];
@@ -34,16 +41,15 @@ export default function WatchProviders({
     <section className="mt-16">
       <div className="mb-7">
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-          Disponibilità
+          {t("availability")}
         </p>
 
         <h2 className="mt-2 text-3xl font-bold text-white">
-          📺 Dove guardarlo in {countryLabel}
+          {t("whereToWatch", { country: countryLabel })}
         </h2>
 
         <p className="mt-3 max-w-3xl leading-7 text-zinc-400">
-          Scopri su quali servizi è disponibile in streaming,
-          a noleggio o per l&apos;acquisto.
+          {t("description")}
         </p>
       </div>
 
@@ -51,25 +57,34 @@ export default function WatchProviders({
         <div className="space-y-6">
           {streaming.length > 0 && (
             <ProviderGroup
-              title="Streaming"
+              title={t("streaming")}
               providers={streaming}
               link={providers?.link}
+              openProviderOptions={(provider) =>
+                t("openProviderOptions", { provider })
+              }
             />
           )}
 
           {rent.length > 0 && (
             <ProviderGroup
-              title="Noleggio"
+              title={t("rent")}
               providers={rent}
               link={providers?.link}
+              openProviderOptions={(provider) =>
+                t("openProviderOptions", { provider })
+              }
             />
           )}
 
           {buy.length > 0 && (
             <ProviderGroup
-              title="Acquisto"
+              title={t("buy")}
               providers={buy}
               link={providers?.link}
+              openProviderOptions={(provider) =>
+                t("openProviderOptions", { provider })
+              }
             />
           )}
 
@@ -81,12 +96,11 @@ export default function WatchProviders({
                 rel="noreferrer"
                 className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-6 py-3 text-sm font-bold text-zinc-200 transition hover:border-[#7C3AED] hover:text-white"
               >
-                Apri tutte le opzioni
+                {t("openAllOptions")}
               </a>
 
               <p className="mt-3 text-xs leading-5 text-zinc-500">
-                Disponibilità fornita da JustWatch tramite TMDB.
-                I servizi possono variare nel tempo e in base alla località.
+                {t("sourceNote")}
               </p>
             </div>
           )}
@@ -96,12 +110,14 @@ export default function WatchProviders({
           <p className="text-4xl">🍿</p>
 
           <h3 className="mt-4 text-xl font-bold text-white">
-            Nessuna disponibilità trovata
+            {t("noAvailabilityTitle")}
           </h3>
 
           <p className="mx-auto mt-3 max-w-xl text-zinc-400">
-            Al momento TMDB non segnala servizi di streaming,
-            noleggio o acquisto per {title} in {countryLabel}.
+            {t("noAvailabilityDescription", {
+              title,
+              country: countryLabel,
+            })}
           </p>
         </div>
       )}
@@ -113,6 +129,7 @@ function ProviderGroup({
   title,
   providers,
   link,
+  openProviderOptions,
 }: ProviderGroupProps) {
   const uniqueProviders = Array.from(
     new Map(
@@ -180,7 +197,9 @@ function ProviderGroup({
               target="_blank"
               rel="noreferrer"
               className={cardClassName}
-              aria-label={`Apri le opzioni per ${provider.provider_name}`}
+              aria-label={openProviderOptions(
+                provider.provider_name
+              )}
             >
               {content}
             </a>

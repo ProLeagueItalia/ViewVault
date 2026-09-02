@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 
@@ -32,6 +33,7 @@ export default function MovieVaultActions({
   initialWatchCount = 0,
 }: MovieVaultActionsProps) {
   const router = useRouter();
+  const t = useTranslations("MovieVaultActions");
   const supabase = useMemo(() => createClient(), []);
 
   const [status, setStatus] =
@@ -54,9 +56,7 @@ export default function MovieVaultActions({
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      setMessage(
-        "Effettua il login per gestire questo film."
-      );
+      setMessage(t("loginRequired"));
       setHasError(true);
       return null;
     }
@@ -100,9 +100,7 @@ export default function MovieVaultActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile registrare la visione."
-      );
+      setMessage(t("recordWatchError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -113,9 +111,7 @@ export default function MovieVaultActions({
     ) as RecordMovieWatchResult | null;
 
     if (!result) {
-      setMessage(
-        "Il database non ha restituito il conteggio delle visioni."
-      );
+      setMessage(t("watchCountDatabaseError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -142,7 +138,7 @@ export default function MovieVaultActions({
      * registriamo una vera visione in watch_events.
      */
     if (newStatus === "watched") {
-      await recordWatch("Film segnato come visto.");
+      await recordWatch(t("movieMarkedWatched"));
       return;
     }
 
@@ -183,19 +179,14 @@ export default function MovieVaultActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile aggiornare il Vault."
-      );
+      setMessage(t("vaultUpdateError"));
       setHasError(true);
       setIsSaving(false);
       return;
     }
 
     setStatus(newStatus);
-
-    setMessage(
-      "Film aggiunto alla lista Da vedere."
-    );
+    setMessage(t("movieAddedWatchlist"));
 
     setIsSaving(false);
     router.refresh();
@@ -235,9 +226,7 @@ export default function MovieVaultActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile annullare l'ultima visione."
-      );
+      setMessage(t("removeLastWatchError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -248,16 +237,14 @@ export default function MovieVaultActions({
     ) as RemoveMovieWatchResult | null;
 
     if (!result) {
-      setMessage(
-        "Il database non ha restituito il nuovo conteggio."
-      );
+      setMessage(t("newWatchCountDatabaseError"));
       setHasError(true);
       setIsSaving(false);
       return;
     }
 
     setWatchCount(result.watch_count);
-    setMessage("Ultima visione annullata.");
+    setMessage(t("lastWatchRemoved"));
     setHasError(false);
     setIsSaving(false);
 
@@ -302,9 +289,7 @@ export default function MovieVaultActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile aggiornare i Preferiti."
-      );
+      setMessage(t("favoriteUpdateError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -314,8 +299,8 @@ export default function MovieVaultActions({
 
     setMessage(
       newFavoriteValue
-        ? "Film aggiunto ai Preferiti."
-        : "Film rimosso dai Preferiti."
+        ? t("addedToFavorites")
+        : t("removedFromFavorites")
     );
 
     setIsSaving(false);
@@ -328,7 +313,7 @@ export default function MovieVaultActions({
     }
 
     const confirmed = window.confirm(
-      "Vuoi rimuovere questo film dal Vault?"
+      t("confirmRemove")
     );
 
     if (!confirmed) {
@@ -364,9 +349,7 @@ export default function MovieVaultActions({
         }
       );
 
-      setMessage(
-        "Non è stato possibile rimuovere il film."
-      );
+      setMessage(t("removeMovieError"));
       setHasError(true);
       setIsSaving(false);
       return;
@@ -379,7 +362,7 @@ export default function MovieVaultActions({
      */
     setStatus(null);
     setIsFavorite(false);
-    setMessage("Film rimosso dal Vault.");
+    setMessage(t("movieRemoved"));
     setIsSaving(false);
     router.refresh();
   }
@@ -395,8 +378,8 @@ export default function MovieVaultActions({
             className="rounded-full bg-[#7C3AED] px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.45)] transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving
-              ? "Salvataggio..."
-              : "+ Aggiungi al Vault"}
+              ? t("saving")
+              : t("addToVault")}
           </button>
         )}
 
@@ -409,12 +392,12 @@ export default function MovieVaultActions({
               className="rounded-full bg-green-600 px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(22,163,74,0.35)] transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving
-                ? "Salvataggio..."
-                : "✓ Segna come visto"}
+                ? t("saving")
+                : t("markAsWatched")}
             </button>
 
             <span className="flex items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/15 px-6 py-4 font-semibold text-violet-300">
-              👀 Nel Vault · Da vedere
+              {t("inVaultWatchlist")}
             </span>
 
             <button
@@ -428,8 +411,8 @@ export default function MovieVaultActions({
               }`}
             >
               {isFavorite
-                ? "❤️ Nei Preferiti"
-                : "♡ Aggiungi ai Preferiti"}
+                ? t("inFavorites")
+                : t("addToFavorites")}
             </button>
 
             <button
@@ -438,7 +421,7 @@ export default function MovieVaultActions({
               disabled={isSaving}
               className="rounded-full border border-zinc-700 px-6 py-4 font-semibold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Rimuovi
+              {t("remove")}
             </button>
           </>
         )}
@@ -448,15 +431,17 @@ export default function MovieVaultActions({
             <button
               type="button"
               onClick={() =>
-                recordWatch("Nuova visione registrata.")
+                recordWatch(t("newWatchRecorded"))
               }
               disabled={isSaving}
-              title="Aggiungi una nuova visione"
+              title={t("addNewWatch")}
               className="flex items-center justify-center rounded-full bg-green-600 px-8 py-4 text-lg font-semibold text-white shadow-[0_0_30px_rgba(22,163,74,0.35)] transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving
-                ? "Salvataggio..."
-                : `✓ Visto ×${Math.max(watchCount, 1)}`}
+                ? t("saving")
+                : t("watchedCount", {
+                    count: Math.max(watchCount, 1),
+                  })}
             </button>
 
             {watchCount > 1 && (
@@ -464,10 +449,10 @@ export default function MovieVaultActions({
                 type="button"
                 onClick={removeLastWatch}
                 disabled={isSaving}
-                title="Annulla l'ultima visione registrata"
+                title={t("undoLastWatchTitle")}
                 className="rounded-full border border-zinc-700 px-6 py-4 font-semibold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                ↩ Annulla ultima visione
+                {t("undoLastWatch")}
               </button>
             )}
 
@@ -478,8 +463,8 @@ export default function MovieVaultActions({
               className="rounded-full border border-violet-500/50 bg-violet-500/10 px-6 py-4 font-semibold text-violet-300 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving
-                ? "Salvataggio..."
-                : "Segna come da vedere"}
+                ? t("saving")
+                : t("markAsWatchlist")}
             </button>
 
             <button
@@ -493,8 +478,8 @@ export default function MovieVaultActions({
               }`}
             >
               {isFavorite
-                ? "❤️ Nei Preferiti"
-                : "♡ Aggiungi ai Preferiti"}
+                ? t("inFavorites")
+                : t("addToFavorites")}
             </button>
 
             <button
@@ -503,7 +488,7 @@ export default function MovieVaultActions({
               disabled={isSaving}
               className="rounded-full border border-zinc-700 px-6 py-4 font-semibold text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Rimuovi
+              {t("remove")}
             </button>
           </>
         )}

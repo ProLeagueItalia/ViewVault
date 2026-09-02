@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import Navbar from "../../../components/Navbar";
 import { createClient } from "../../../lib/supabase/client";
@@ -32,6 +33,7 @@ type RequestItem = Profile & {
 
 export default function FriendsPage() {
   const router = useRouter();
+  const t = useTranslations("FriendsPage");
   const supabase = useMemo(() => createClient(), []);
 
   const [friends, setFriends] = useState<FriendItem[]>([]);
@@ -275,7 +277,7 @@ export default function FriendsPage() {
 
   async function removeFriend(friendshipId: string) {
     const confirmed = window.confirm(
-      "Vuoi davvero rimuovere questo amico?"
+      t("confirmRemove")
     );
 
     if (!confirmed) {
@@ -379,7 +381,7 @@ export default function FriendsPage() {
 
         <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
           <div className="rounded-3xl border border-zinc-800 bg-[#18181B] p-8 text-zinc-400">
-            Caricamento amici...
+            {t("loading")}
           </div>
         </section>
       </main>
@@ -394,16 +396,15 @@ export default function FriendsPage() {
         {/* HEADER */}
         <div className="max-w-3xl">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#A78BFA]">
-            Social
+            {t("social")}
           </p>
 
           <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">
-            Gestisci amici
+            {t("manageFriends")}
           </h1>
 
           <p className="mt-4 text-lg leading-8 text-zinc-400">
-            Visualizza i tuoi amici, controlla le richieste ricevute
-            e tieni d&apos;occhio quelle che hai già inviato.
+            {t("description")}
           </p>
         </div>
 
@@ -411,7 +412,7 @@ export default function FriendsPage() {
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           <div className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6">
             <p className="text-sm font-semibold text-zinc-500">
-              Amici
+              {t("friends")}
             </p>
 
             <p className="mt-2 text-4xl font-black text-white">
@@ -421,7 +422,7 @@ export default function FriendsPage() {
 
           <div className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6">
             <p className="text-sm font-semibold text-zinc-500">
-              Richieste ricevute
+              {t("receivedRequests")}
             </p>
 
             <p className="mt-2 text-4xl font-black text-white">
@@ -431,7 +432,7 @@ export default function FriendsPage() {
 
           <div className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6">
             <p className="text-sm font-semibold text-zinc-500">
-              Richieste inviate
+              {t("sentRequests")}
             </p>
 
             <p className="mt-2 text-4xl font-black text-white">
@@ -444,11 +445,11 @@ export default function FriendsPage() {
         <section className="mt-10 rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-              Amici
+              {t("friends")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold text-white">
-              I tuoi amici
+              {t("yourFriends")}
             </h2>
           </div>
 
@@ -467,8 +468,8 @@ export default function FriendsPage() {
           ) : (
             <EmptyState
               icon="👥"
-              title="Nessun amico ancora"
-              description="Quando accetterai una richiesta di amicizia, gli utenti compariranno qui."
+              title={t("noFriendsTitle")}
+              description={t("noFriendsDescription")}
             />
           )}
         </section>
@@ -477,11 +478,11 @@ export default function FriendsPage() {
         <section className="mt-8 rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-              In arrivo
+              {t("incoming")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold text-white">
-              Richieste ricevute
+              {t("receivedRequests")}
             </h2>
           </div>
 
@@ -500,8 +501,8 @@ export default function FriendsPage() {
           ) : (
             <EmptyState
               icon="📭"
-              title="Nessuna richiesta ricevuta"
-              description="Quando qualcuno ti invierà una richiesta di amicizia, comparirà qui."
+              title={t("noReceivedTitle")}
+              description={t("noReceivedDescription")}
             />
           )}
         </section>
@@ -510,11 +511,11 @@ export default function FriendsPage() {
         <section className="mt-8 rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-              Inviate
+              {t("sent")}
             </p>
 
             <h2 className="mt-2 text-2xl font-bold text-white">
-              Richieste inviate
+              {t("sentRequests")}
             </h2>
           </div>
 
@@ -530,8 +531,8 @@ export default function FriendsPage() {
           ) : (
             <EmptyState
               icon="📤"
-              title="Nessuna richiesta inviata"
-              description="Le richieste di amicizia ancora in attesa compariranno qui."
+              title={t("noSentTitle")}
+              description={t("noSentDescription")}
             />
           )}
         </section>
@@ -549,6 +550,7 @@ function ProfileCard({
   onRemove?: () => void;
   onAccept?: () => void;
 }) {
+  const t = useTranslations("FriendsPage");
   const displayName =
     profile.display_name?.trim() ||
     profile.username;
@@ -603,7 +605,7 @@ function ProfileCard({
             onClick={onAccept}
             className="rounded-full bg-[#7C3AED] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#2563EB]"
           >
-            Accetta
+            {t("accept")}
           </button>
         )}
 
@@ -613,7 +615,7 @@ function ProfileCard({
             onClick={onRemove}
             className="rounded-full border border-red-500/30 px-3 py-2 text-xs font-bold text-red-400 transition hover:border-red-500 hover:bg-red-500/10"
           >
-            Rimuovi
+            {t("remove")}
           </button>
         )}
       </div>

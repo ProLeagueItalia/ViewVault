@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "../lib/supabase/client";
 import FriendshipButton from "./FriendshipButton";
@@ -109,6 +110,8 @@ function getFriendshipStatus(
 export default function FriendFinder({
   currentUserId,
 }: FriendFinderProps) {
+  const t = useTranslations("FriendFinder");
+
   const supabase = useMemo(
     () => createClient(),
     []
@@ -224,7 +227,7 @@ export default function FriendFinder({
       );
 
       setErrorMessage(
-        "Non è stato possibile caricare gli utenti."
+        t("loadUsersError")
       );
 
       setUsers([]);
@@ -244,6 +247,7 @@ export default function FriendFinder({
     attachFriendships,
     currentUserId,
     supabase,
+    t,
   ]);
 
   useEffect(() => {
@@ -335,7 +339,7 @@ export default function FriendFinder({
 
       setUsers([]);
       setErrorMessage(
-        "Non è stato possibile completare la ricerca."
+        t("searchError")
       );
     } finally {
       setIsSearching(false);
@@ -353,22 +357,20 @@ export default function FriendFinder({
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
-              Connessioni
+              {t("connections")}
             </p>
 
             <h2 className="mt-2 text-3xl font-black text-white">
-              Trova amici su ViewVault
+              {t("findFriends")}
             </h2>
 
             <p className="mt-3 max-w-2xl leading-7 text-zinc-400">
-              Cerca una persona per username,
-              nome o email, oppure scopri gli
-              altri utenti della Community.
+              {t("description")}
             </p>
           </div>
 
           <div className="rounded-2xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-4 py-3 text-sm font-semibold text-[#C4B5FD]">
-            👥 Conosci nuovi appassionati
+            👥 {t("meetNewFans")}
           </div>
         </div>
 
@@ -382,7 +384,7 @@ export default function FriendFinder({
             onChange={(event) =>
               setSearch(event.target.value)
             }
-            placeholder="Cerca username, nome o email..."
+            placeholder={t("searchPlaceholder")}
             autoComplete="off"
             className="min-w-0 flex-1 rounded-full border border-zinc-700 bg-[#111111] px-6 py-4 text-white outline-none transition placeholder:text-zinc-500 focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/15"
           />
@@ -393,8 +395,8 @@ export default function FriendFinder({
             className="rounded-full bg-[#7C3AED] px-8 py-4 font-bold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSearching
-              ? "Ricerca..."
-              : "🔎 Cerca"}
+              ? t("searching")
+              : `🔎 ${t("search")}`}
           </button>
 
           {hasSearched && (
@@ -403,15 +405,13 @@ export default function FriendFinder({
               onClick={clearSearch}
               className="rounded-full border border-zinc-700 px-6 py-4 font-bold text-zinc-300 transition hover:border-[#7C3AED] hover:text-white"
             >
-              Mostra tutti
+              {t("showAll")}
             </button>
           )}
         </form>
 
         <p className="mt-3 text-sm text-zinc-500">
-          L&apos;email viene utilizzata soltanto
-          per trovare un account esatto e non
-          viene mostrata agli altri utenti.
+          {t("emailPrivacy")}
         </p>
       </div>
 
@@ -420,23 +420,20 @@ export default function FriendFinder({
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#8B5CF6]">
               {hasSearched
-                ? "Risultati"
-                : "Utenti ViewVault"}
+                ? t("results")
+                : t("viewVaultUsers")}
             </p>
 
             <h3 className="mt-1 text-xl font-bold text-white">
               {hasSearched
-                ? "Persone trovate"
-                : "Scopri la Community"}
+                ? t("peopleFound")
+                : t("discoverCommunity")}
             </h3>
           </div>
 
           {!isLoading && (
             <span className="rounded-full border border-zinc-800 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-400">
-              {users.length}{" "}
-              {users.length === 1
-                ? "utente"
-                : "utenti"}
+              {t("usersCount", { count: users.length })}
             </span>
           )}
         </div>
@@ -449,7 +446,7 @@ export default function FriendFinder({
 
         {isLoading ? (
           <div className="rounded-3xl border border-zinc-800 bg-black/20 px-6 py-14 text-center text-zinc-400">
-            Caricamento utenti...
+            {t("loadingUsers")}
           </div>
         ) : users.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-zinc-700 bg-black/20 px-6 py-14 text-center">
@@ -458,12 +455,11 @@ export default function FriendFinder({
             </div>
 
             <h3 className="mt-4 text-xl font-bold text-white">
-              Nessun utente trovato
+              {t("noUsersFound")}
             </h3>
 
             <p className="mt-2 text-zinc-500">
-              Prova con un altro username,
-              nome o indirizzo email.
+              {t("tryAnotherSearch")}
             </p>
           </div>
         ) : (
@@ -509,7 +505,7 @@ export default function FriendFinder({
                         className="text-lg"
                         title={
                           profile.country_code ??
-                          "Nazione non indicata"
+                          t("countryNotSpecified")
                         }
                       >
                         {countryFlag(
@@ -524,8 +520,8 @@ export default function FriendFinder({
 
                     <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       {profile.is_public
-                        ? "Profilo pubblico"
-                        : "Profilo privato"}
+                        ? t("publicProfile")
+                        : t("privateProfile")}
                     </p>
                   </div>
                 </div>
@@ -535,7 +531,7 @@ export default function FriendFinder({
                     href={`/u/${profile.username}`}
                     className="text-sm font-bold text-zinc-300 transition hover:text-[#C4B5FD]"
                   >
-                    Visualizza profilo →
+                    {t("viewProfile")} →
                   </Link>
 
                   <FriendshipButton
