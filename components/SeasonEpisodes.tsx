@@ -116,7 +116,7 @@ export default function SeasonEpisodes({
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) {
+      if (userError && userError.name !== "AuthSessionMissingError") {
         console.error(
           "Errore nel recupero dell'utente:",
           userError
