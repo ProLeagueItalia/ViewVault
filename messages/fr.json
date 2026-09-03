@@ -674,7 +674,7 @@
     "privateProfileEmoji": "🔒 Profil privé",
     "editProfile": "Modifier le profil",
     "favoriteGenres": "Genres préférés",
-    "social": "Social",
+    "social": "Réseaux sociaux",
     "myFriends": "Mes amis",
     "friendsDescription": "The people you're connected with on ViewVault.",
     "friendCount": "{count, plural, one {friend} other {friends}}",
@@ -723,7 +723,8 @@
       "displayNameMax": "Display name cannot exceed 50 characters.",
       "bioMax": "Bio cannot exceed 300 characters.",
       "usernameTaken": "This username is already in use. Choose another one.",
-      "saveProfile": "Unable to save profile. Try again."
+      "saveProfile": "Unable to save profile. Try again.",
+      "socialInvalid": "Vérifiez les liens saisis : utilisez un profil valide pour chaque plateforme."
     },
     "success": {
       "updated": "Profile updated successfully."
@@ -741,7 +742,10 @@
       "romance": "Romance",
       "animation": "Animation",
       "documentary": "Documentaire"
-    }
+    },
+    "socialTitle": "Instagram · Facebook · TikTok · X · Telegram",
+    "socialDescription": "Saisissez votre nom d’utilisateur ou le lien complet de votre profil.",
+    "socialUsernameOrUrl": "@utilisateur ou lien complet"
   },
   "PublicProfile": {
     "profileViewVault": "Profil ViewVault",
@@ -817,7 +821,8 @@
     },
     "errors": {
       "activityWithoutTmdb": "Activité sans contenu TMDB."
-    }
+    },
+    "social": "Réseaux sociaux"
   },
   "FriendsPage": {
     "loading": "Loading friends...",

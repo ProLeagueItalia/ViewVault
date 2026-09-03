@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import BackButton from "../../components/BackButton";
 import FriendFinder from "../../components/FriendFinder";
 import FriendsActivityFeed from "../../components/FriendsActivityFeed";
+import SocialLink from "../../components/SocialLink";
 import RankingsSection, {
   type RankingItem,
   type RankingScope,
@@ -493,6 +494,46 @@ export default async function CommunityPage() {
               <p className="mt-1 text-sm text-zinc-500">
                 {t("detailsComingSoon")}
               </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-3xl border border-[#7C3AED]/30 bg-gradient-to-br from-[#211532] via-[#18181B] to-[#111827] p-7 md:p-9">
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
+                {t("viewVaultCommunity")}
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold text-white md:text-3xl">
+                {t("buildYourNetwork")}
+              </h2>
+
+              <p className="mt-3 leading-7 text-zinc-400">
+                {t("friendshipsDescription")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row lg:shrink-0">
+              <SocialLink
+                href="https://www.instagram.com/viewvault.italia?igsi=cnVwN2FydGtjOWM5"
+                platform="instagram"
+                location="community"
+                className="inline-flex items-center justify-center gap-3 rounded-2xl border border-[#A78BFA]/40 bg-[#7C3AED]/15 px-5 py-3.5 font-bold text-white transition hover:border-[#A78BFA] hover:bg-[#7C3AED]/25"
+              >
+                <span aria-hidden="true" className="text-xl">◎</span>
+                Instagram
+              </SocialLink>
+
+              <SocialLink
+                href="https://www.facebook.com/profile.php?id=61593552534107"
+                platform="facebook"
+                location="community"
+                className="inline-flex items-center justify-center gap-3 rounded-2xl border border-zinc-700 bg-black/20 px-5 py-3.5 font-bold text-white transition hover:border-[#A78BFA] hover:bg-[#7C3AED]/10"
+              >
+                <span aria-hidden="true" className="text-xl font-black">f</span>
+                Facebook
+              </SocialLink>
             </div>
           </div>
         </section>

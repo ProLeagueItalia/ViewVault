@@ -4,6 +4,7 @@
 
   import Navbar from "../../../components/Navbar";
   import FriendshipButton from "../../../components/FriendshipButton";
+  import ProfileSocialLink from "../../../components/ProfileSocialLink";
 
   import { createClient } from "../../../lib/supabase/server";
 
@@ -270,7 +271,12 @@
           cover_url,
           favorite_genres,
           country_code,
-          is_public
+          is_public,
+          instagram_url,
+          facebook_url,
+          tiktok_url,
+          x_url,
+          telegram_url
         `
       )
       .eq("username", username)
@@ -305,6 +311,43 @@
 
     const countryName =
       getCountryName(countryCode, locale);
+
+    const socialLinks = [
+      {
+        platform: "instagram" as const,
+        href: profile.instagram_url,
+      },
+      {
+        platform: "facebook" as const,
+        href: profile.facebook_url,
+      },
+      {
+        platform: "tiktok" as const,
+        href: profile.tiktok_url,
+      },
+      {
+        platform: "x" as const,
+        href: profile.x_url,
+      },
+      {
+        platform: "telegram" as const,
+        href: profile.telegram_url,
+      },
+    ].filter(
+      (
+        social
+      ): social is {
+        platform:
+          | "instagram"
+          | "facebook"
+          | "tiktok"
+          | "x"
+          | "telegram";
+        href: string;
+      } =>
+        typeof social.href === "string" &&
+        social.href.startsWith("http")
+    );
 
     /*
     * RELAZIONE DI AMICIZIA
@@ -970,6 +1013,24 @@
                     </div>
                   </div>
                 )}
+
+              {socialLinks.length > 0 && (
+                <div className="mt-8">
+                  <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-zinc-500">
+                    {t("social")}
+                  </p>
+
+                  <div className="flex flex-wrap gap-3">
+                    {socialLinks.map((social) => (
+                      <ProfileSocialLink
+                        key={social.platform}
+                        platform={social.platform}
+                        href={social.href}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

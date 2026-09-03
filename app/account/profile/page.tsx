@@ -265,6 +265,11 @@ type SavedProfile = {
   coverUrl: string | null;
   countryCode: string;
   isPublic: boolean;
+  instagramUrl: string;
+  facebookUrl: string;
+  tiktokUrl: string;
+  xUrl: string;
+  telegramUrl: string;
 };
 
 type FriendProfile = {
@@ -274,6 +279,71 @@ type FriendProfile = {
   avatar_url: string | null;
   bio: string | null;
 };
+
+type SocialPlatform =
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "x"
+  | "telegram";
+
+function normalizeSocialUrl(
+  platform: SocialPlatform,
+  value: string
+) {
+  const input = value.trim();
+
+  if (!input) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    return input;
+  }
+
+  const cleanValue = input.replace(/^@/, "").replace(/^\/+|\/+$/g, "");
+
+  switch (platform) {
+    case "instagram":
+      return `https://www.instagram.com/${cleanValue}`;
+    case "facebook":
+      return `https://www.facebook.com/${cleanValue}`;
+    case "tiktok":
+      return `https://www.tiktok.com/@${cleanValue}`;
+    case "x":
+      return `https://x.com/${cleanValue}`;
+    case "telegram":
+      return `https://t.me/${cleanValue}`;
+  }
+}
+
+function isValidSocialUrl(
+  platform: SocialPlatform,
+  value: string
+) {
+  if (!value) {
+    return true;
+  }
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+
+    const allowedHosts: Record<SocialPlatform, string[]> = {
+      instagram: ["instagram.com"],
+      facebook: ["facebook.com", "m.facebook.com"],
+      tiktok: ["tiktok.com"],
+      x: ["x.com", "twitter.com"],
+      telegram: ["t.me", "telegram.me"],
+    };
+
+    return allowedHosts[platform].some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`)
+    );
+  } catch {
+    return false;
+  }
+}
 
 type MediaType = "avatar" | "cover";
 
@@ -311,6 +381,12 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [countryCode, setCountryCode] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [xUrl, setXUrl] = useState("");
+  const [telegramUrl, setTelegramUrl] = useState("");
 
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>(
     []
@@ -443,7 +519,7 @@ export default function ProfilePage() {
         await supabase
           .from("profiles")
           .select(
-            "username, display_name, bio, favorite_genres, avatar_url, cover_url, country_code, is_public"
+            "username, display_name, bio, favorite_genres, avatar_url, cover_url, country_code, is_public, instagram_url, facebook_url, tiktok_url, x_url, telegram_url"
           )
           .eq("id", currentUser.id)
           .single();
@@ -477,6 +553,11 @@ export default function ProfilePage() {
         coverUrl: profile?.cover_url ?? null,
         countryCode: profile?.country_code ?? "",
         isPublic: profile?.is_public ?? true,
+        instagramUrl: profile?.instagram_url ?? "",
+        facebookUrl: profile?.facebook_url ?? "",
+        tiktokUrl: profile?.tiktok_url ?? "",
+        xUrl: profile?.x_url ?? "",
+        telegramUrl: profile?.telegram_url ?? "",
       };
 
       setUsername(loadedProfile.username);
@@ -484,6 +565,11 @@ export default function ProfilePage() {
       setBio(loadedProfile.bio);
       setCountryCode(loadedProfile.countryCode);
       setIsPublic(loadedProfile.isPublic);
+      setInstagramUrl(loadedProfile.instagramUrl);
+      setFacebookUrl(loadedProfile.facebookUrl);
+      setTiktokUrl(loadedProfile.tiktokUrl);
+      setXUrl(loadedProfile.xUrl);
+      setTelegramUrl(loadedProfile.telegramUrl);
 
       setFavoriteGenres(
         loadedProfile.favoriteGenres
@@ -767,6 +853,11 @@ export default function ProfilePage() {
     setBio(savedProfile.bio);
     setCountryCode(savedProfile.countryCode);
     setIsPublic(savedProfile.isPublic);
+    setInstagramUrl(savedProfile.instagramUrl);
+    setFacebookUrl(savedProfile.facebookUrl);
+    setTiktokUrl(savedProfile.tiktokUrl);
+    setXUrl(savedProfile.xUrl);
+    setTelegramUrl(savedProfile.telegramUrl);
 
     setFavoriteGenres(
       savedProfile.favoriteGenres
@@ -832,6 +923,44 @@ export default function ProfilePage() {
 
     const cleanBio =
       bio.trim();
+
+    const normalizedInstagramUrl = normalizeSocialUrl(
+      "instagram",
+      instagramUrl
+    );
+    const normalizedFacebookUrl = normalizeSocialUrl(
+      "facebook",
+      facebookUrl
+    );
+    const normalizedTiktokUrl = normalizeSocialUrl(
+      "tiktok",
+      tiktokUrl
+    );
+    const normalizedXUrl = normalizeSocialUrl("x", xUrl);
+    const normalizedTelegramUrl = normalizeSocialUrl(
+      "telegram",
+      telegramUrl
+    );
+
+    const socialUrls: Array<[SocialPlatform, string]> = [
+      ["instagram", normalizedInstagramUrl],
+      ["facebook", normalizedFacebookUrl],
+      ["tiktok", normalizedTiktokUrl],
+      ["x", normalizedXUrl],
+      ["telegram", normalizedTelegramUrl],
+    ];
+
+    if (
+      socialUrls.some(
+        ([platform, url]) => !isValidSocialUrl(platform, url)
+      )
+    ) {
+      setMessage(
+        t("errors.saveProfile")
+      );
+      setHasError(true);
+      return;
+    }
 
     if (cleanUsername.length < 3) {
       setMessage(
@@ -922,6 +1051,11 @@ export default function ProfilePage() {
           cover_url: finalCoverUrl,
           country_code: countryCode || null,
           is_public: isPublic,
+          instagram_url: normalizedInstagramUrl || null,
+          facebook_url: normalizedFacebookUrl || null,
+          tiktok_url: normalizedTiktokUrl || null,
+          x_url: normalizedXUrl || null,
+          telegram_url: normalizedTelegramUrl || null,
           updated_at:
             new Date().toISOString(),
         })
@@ -940,6 +1074,11 @@ export default function ProfilePage() {
         coverUrl: finalCoverUrl,
         countryCode,
         isPublic,
+        instagramUrl: normalizedInstagramUrl,
+        facebookUrl: normalizedFacebookUrl,
+        tiktokUrl: normalizedTiktokUrl,
+        xUrl: normalizedXUrl,
+        telegramUrl: normalizedTelegramUrl,
       };
 
       clearAvatarPreview();
@@ -954,6 +1093,11 @@ export default function ProfilePage() {
       setUsername(cleanUsername);
       setDisplayName(cleanDisplayName);
       setBio(cleanBio);
+      setInstagramUrl(normalizedInstagramUrl);
+      setFacebookUrl(normalizedFacebookUrl);
+      setTiktokUrl(normalizedTiktokUrl);
+      setXUrl(normalizedXUrl);
+      setTelegramUrl(normalizedTelegramUrl);
 
       setSavedProfile(updatedProfile);
 
@@ -1421,6 +1565,71 @@ export default function ProfilePage() {
                     {t("accountPrivacyInfo")}
                   </div>
                 </div>
+              </div>
+            </section>
+
+            {/* SOCIAL */}
+            <section className="rounded-3xl border border-zinc-800 bg-[#18181B] p-6 md:p-8">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#A78BFA]">
+                {t("social")}
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold">
+                Instagram · Facebook · TikTok · X · Telegram
+              </h2>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                {[
+                  {
+                    label: "Instagram",
+                    value: instagramUrl,
+                    setter: setInstagramUrl,
+                    placeholder: t("socialUsernameOrUrl"),
+                  },
+                  {
+                    label: "Facebook",
+                    value: facebookUrl,
+                    setter: setFacebookUrl,
+                    placeholder: t("socialUsernameOrUrl"),
+                  },
+                  {
+                    label: "TikTok",
+                    value: tiktokUrl,
+                    setter: setTiktokUrl,
+                    placeholder: t("socialUsernameOrUrl"),
+                  },
+                  {
+                    label: "X",
+                    value: xUrl,
+                    setter: setXUrl,
+                    placeholder: t("socialUsernameOrUrl"),
+                  },
+                  {
+                    label: "Telegram",
+                    value: telegramUrl,
+                    setter: setTelegramUrl,
+                    placeholder: t("socialUsernameOrUrl"),
+                  },
+                ].map((social) => (
+                  <div key={social.label}>
+                    <label className="mb-2 block text-sm font-semibold text-zinc-300">
+                      {social.label}
+                    </label>
+
+                    <input
+                      type="text"
+                      value={social.value}
+                      onChange={(event) => {
+                        social.setter(event.target.value);
+                        clearMessage();
+                      }}
+                      disabled={isSaving}
+                      placeholder={social.placeholder}
+                      autoComplete="off"
+                      className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-[#7C3AED]"
+                    />
+                  </div>
+                ))}
               </div>
             </section>
 

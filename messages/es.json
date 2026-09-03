@@ -723,7 +723,8 @@
       "displayNameMax": "Display name cannot exceed 50 characters.",
       "bioMax": "Bio cannot exceed 300 characters.",
       "usernameTaken": "This username is already in use. Choose another one.",
-      "saveProfile": "Unable to save profile. Try again."
+      "saveProfile": "Unable to save profile. Try again.",
+      "socialInvalid": "Comprueba los enlaces sociales introducidos: utiliza un perfil válido para cada plataforma."
     },
     "success": {
       "updated": "Profile updated successfully."
@@ -741,7 +742,10 @@
       "romance": "Romance",
       "animation": "Animación",
       "documentary": "Documental"
-    }
+    },
+    "socialTitle": "Instagram · Facebook · TikTok · X · Telegram",
+    "socialDescription": "Introduce tu nombre de usuario o el enlace completo del perfil.",
+    "socialUsernameOrUrl": "@usuario o enlace completo"
   },
   "PublicProfile": {
     "profileViewVault": "Perfil de ViewVault",
@@ -817,7 +821,8 @@
     },
     "errors": {
       "activityWithoutTmdb": "Actividad sin contenido TMDB."
-    }
+    },
+    "social": "Social"
   },
   "FriendsPage": {
     "loading": "Loading friends...",
