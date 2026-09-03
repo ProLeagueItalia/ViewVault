@@ -8,6 +8,8 @@ import "./globals.css";
 
 import Footer from "../components/Footer";
 import ScrollToTopButton from "../components/ScrollToTopButton";
+import CookieConsentBanner from "../components/CookieConsentBanner";
+import GoogleAnalytics from "../components/GoogleAnalytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,9 +46,9 @@ export default async function RootLayout({
           </div>
 
           <Footer />
-
           <ScrollToTopButton />
-
+          <CookieConsentBanner />
+          <GoogleAnalytics />
           <Analytics />
         </NextIntlClientProvider>
       </body>
